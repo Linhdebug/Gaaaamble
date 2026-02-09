@@ -62,13 +62,69 @@
         background: gray;
         cursor: not-allowed;
     }
+
+    /* Estilos de los botones de menú */
+    #modifiersBtn, #inventoryBtn {
+        position: fixed;
+        top: 20px;
+        font-size: 28px;
+        padding: 10px;
+        cursor: pointer;
+        z-index: 15;
+    }
+
+    #modifiersBtn {
+        right: 20px;
+    }
+
+    #inventoryBtn {
+        right: 80px;
+    }
+
+    /* Menús desplegables */
+    .menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 100%;
+        background: #222;
+        color: white;
+        padding: 20px;
+        border-left: 4px solid white;
+        z-index: 10;
+    }
+
+    .menu h3 {
+        margin-top: 0;
+    }
 </style>
 </head>
 <body>
 
+<!-- Tragaperras -->
 <div class="slot-machine">
     <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
+</div>
+
+<!-- Botones de menú -->
+<button id="modifiersBtn">≡</button>
+<button id="inventoryBtn">🎒</button>
+
+<!-- Menú de modificadores -->
+<div id="modifiersMenu" class="menu">
+    <h3>Modificadores disponibles</h3>
+    <div id="modifiersList"></div>
+    <button id="closeModifiers">Atrás</button>
+</div>
+
+<!-- Menú de inventario -->
+<div id="inventoryMenu" class="menu">
+    <h3>Inventario de modificadores</h3>
+    <div id="inventoryList"></div>
+    <button id="closeInventory">Atrás</button>
 </div>
 
 <script>
