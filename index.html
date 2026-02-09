@@ -3,87 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <title>Tragaperras 5x3</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <style>
 body {
-    margin: 0;
-    background: #111;
-    color: white;
-    font-family: 'Press Start 2P', monospace;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    position: relative;
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:'Press Start 2P', monospace;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    position:relative;
 }
 .slot-machine {
-    background: #222;
-    padding: 30px;
-    border: 4px solid white;
-    text-align: center;
-    position: relative;
-    z-index: 1;
+    background:#222;
+    padding:30px;
+    border:4px solid white;
+    text-align:center;
+    position:relative;
+    z-index:1;
 }
 .slots {
-    display: grid;
-    grid-template-columns: repeat(5, 80px);
-    grid-template-rows: repeat(3, 120px);
-    gap: 15px;
-    margin-bottom: 30px;
-    justify-content: center;
+    display:grid;
+    grid-template-columns:repeat(5,80px);
+    grid-template-rows:repeat(3,120px);
+    gap:15px;
+    margin-bottom:30px;
+    justify-content:center;
 }
 .slot {
-    border: 3px solid white;
-    font-size: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: black;
-    transition: color 0.2s;
+    border:3px solid white;
+    font-size:64px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:black;
+    transition:color 0.2s;
 }
 button {
-    font-size: 24px;
-    padding: 10px 30px;
-    cursor: pointer;
-    background: white;
-    border: none;
-    z-index: 2;
-    position: relative;
+    font-size:24px;
+    padding:10px 30px;
+    cursor:pointer;
+    background:white;
+    border:none;
+    z-index:2;
+    position:relative;
 }
-button:disabled {
-    background: gray;
-    cursor: not-allowed;
-}
+button:disabled { background:gray; cursor:not-allowed; }
+
+/* Botones de menú */
 #modifiersBtn, #inventoryBtn {
-    position: fixed;
-    top: 20px;
-    font-size: 28px;
-    padding: 10px;
-    cursor: pointer;
-    z-index: 15;
+    position:fixed;
+    top:20px;
+    font-size:28px;
+    padding:10px;
+    cursor:pointer;
+    z-index:15;
 }
-#modifiersBtn { right: 20px; }
-#inventoryBtn { right: 80px; }
+#modifiersBtn { right:20px; }
+#inventoryBtn { right:80px; }
+
+/* Menús desplegables */
 .menu {
-    display: none;
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 300px;
-    height: 100%;
-    background: #222;
-    color: white;
-    padding: 20px;
-    border-left: 4px solid white;
-    z-index: 10;
+    display:none;
+    position:fixed;
+    top:0;
+    right:0;
+    width:300px;
+    height:100%;
+    background:#222;
+    color:white;
+    padding:20px;
+    border-left:4px solid white;
+    z-index:10;
 }
-.menu h3 { margin-top: 0; }
-#tiradasCounter {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    font-size: 24px;
-}
+.menu h3 { margin-top:0; }
+#tiradasCounter { margin-top:20px; font-size:20px; text-align:center; }
 </style>
 </head>
 <body>
@@ -91,9 +89,9 @@ button:disabled {
 <div class="slot-machine">
     <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
+    <div id="tiradasCounter">Tiradas: 0</div>
 </div>
 
-<div id="tiradasCounter">Tiradas: 0</div>
 <button id="modifiersBtn">≡</button>
 <button id="inventoryBtn">🎒</button>
 
@@ -111,28 +109,53 @@ button:disabled {
 
 <script src="amplifiers.js"></script>
 <script>
-const columnas = 5;
-const filas = 3;
-const slotsContainer = document.getElementById("slots-container");
-const slots = [];
-const tiradasCounter = document.getElementById("tiradasCounter");
-let tiradasSinPatron = 0;
+const columnas=5, filas=3;
+const slotsContainer=document.getElementById("slots-container");
+const slots=[];
 
-// Crear los slots
-for (let r = 0; r < filas; r++) {
-    for (let c = 0; c < columnas; c++) {
-        const div = document.createElement("div");
+// Recuperamos código de jugador
+let currentCode = sessionStorage.getItem("currentCode");
+if(!currentCode){
+    alert("No hay código activo. Vuelve a login.html");
+    window.location.href="login.html";
+}
+let savedData = JSON.parse(localStorage.getItem("slotGame_" + currentCode));
+
+// Inicializamos tiradas e inventario
+let tiradasHechas = savedData.tiradas || 0;
+playerInventory = savedData.inventory || [];
+document.getElementById("tiradasCounter").textContent = "Tiradas: "+tiradasHechas;
+
+// Slots
+for(let r=0;r<filas;r++){
+    for(let c=0;c<columnas;c++){
+        const div=document.createElement("div");
         div.classList.add("slot");
-        div.textContent = 1;
+        div.textContent=1;
         slotsContainer.appendChild(div);
         slots.push(div);
     }
 }
 
-const spinBtn = document.getElementById("spinBtn");
-const plac = new Audio("plac.mp3");
-const paternSound = new Audio("patern.mp3");
+// Audio
+const spinBtn=document.getElementById("spinBtn");
+const plac=new Audio("plac.mp3");
+const paternSound=new Audio("patern.mp3");
 
+// Función random con posibilidad de amplificador "7 a tutiplem"
+function randomNumber(){
+    const rand=Math.random()*100;
+    let prob7 = playerInventory.some(a=>a.name==="7 a tutiplem")?50:8.4;
+    if(rand<19) return 1;
+    else if(rand<38) return 2;
+    else if(rand<52.9) return 3;
+    else if(rand<67.8) return 4;
+    else if(rand<79.7) return 5;
+    else if(rand<91.6) return 6;
+    else return 7;
+}
+
+// Colores
 function colorNumber(num){
     switch(num){
         case 1: return "#FF0000";
@@ -146,77 +169,53 @@ function colorNumber(num){
     }
 }
 
-function randomNumber() {
-    let rand = Math.random() * 100;
-    if(playerInventory.some(a => a.name === "7 a tutiplem")){
-        if(rand < 50) return 7;
-        else rand = 50 + (rand-50)/0.5;
-    }
-    if(rand < 19) return 1;
-    else if(rand < 38) return 2;
-    else if(rand < 52.9) return 3;
-    else if(rand < 67.8) return 4;
-    else if(rand < 79.7) return 5;
-    else if(rand < 91.6) return 6;
-    else return 7;
-}
-
+// Detectar patrones
 function detectarPatrones(grid){
-    const patrones = [];
-    const get = (r,c) => grid[r*columnas+c];
+    const patrones=[];
+    const get=(r,c)=>grid[r*columnas+c];
     for(let r=0;r<filas;r++){
         for(let c=0;c<=columnas-3;c++){
-            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2))
-                patrones.push([r*columnas+c, r*columnas+c+1, r*columnas+c+2]);
+            if(get(r,c)===get(r,c+1)&&get(r,c)===get(r,c+2)) patrones.push([r*columnas+c,r*columnas+c+1,r*columnas+c+2]);
         }
     }
+    for(let r=0;r<filas;r++){
+        for(let c=0;c<=columnas-4;c++){
+            if(get(r,c)===get(r,c+1)&&get(r,c)===get(r,c+2)&&get(r,c)===get(r,c+3)) patrones.push([r*columnas+c,r*columnas+c+1,r*columnas+c+2,r*columnas+c+3]);
+        }
+    }
+    for(let r=0;r<filas;r++){
+        if(get(r,0)===get(r,1)&&get(r,0)===get(r,2)&&get(r,0)===get(r,3)&&get(r,0)===get(r,4))
+            patrones.push([r*columnas+0,r*columnas+1,r*columnas+2,r*columnas+3,r*columnas+4]);
+    }
+    for(let c=0;c<columnas;c++){
+        for(let r=0;r<=filas-3;r++){
+            if(get(r,c)===get(r+1,c)&&get(r,c)===get(r+2,c)) patrones.push([r*columnas+c,(r+1)*columnas+c,(r+2)*columnas+c]);
+        }
+    }
+    const diagonales=[[0,6,12],[2,6,10],[3,7,11],[1,5,9],[4,8,12],[0,4,8],[1,5,9],[2,6,10]];
+    diagonales.forEach(d=>{
+        if(slots[d[0]].textContent===slots[d[1]].textContent&&slots[d[0]].textContent===slots[d[2]].textContent)
+            patrones.push(d);
+    });
     return patrones;
 }
 
-function aplicarAmplificadores(patrones){
-    playerInventory.forEach(amp=>{
-        switch(amp.name){
-            case "1 aunque sea":
-                if(tiradasSinPatron > 0){
-                    console.log("Amplificador '1 aunque sea' activado");
-                    // lógica de forzar patrón de unos en la próxima tirada
-                }
-                break;
-            case "Como si nada hubiera pasado":
-                if(tiradasSinPatron >= 3){
-                    tiradasHechas +=5;
-                    alert("Amplificador 'Como si nada hubiera pasado' te da 5 tiradas extra!");
-                    tiradasSinPatron = 0;
-                    tiradasCounter.textContent = "Tiradas: " + tiradasHechas;
-                }
-                break;
-            case "Ojo de dios":
-                if((tiradasHechas % 5) === 0) console.log("Ojo de dios activado");
-                break;
-        }
-    });
-}
-
-let tiradasHechas = 0;
-
+// Spin
 function spin(){
-    spinBtn.disabled = true;
-    tiradasHechas++;
-    tiradasCounter.textContent = "Tiradas: " + tiradasHechas;
-
-    const intervals = slots.map(slot=>setInterval(()=>{
-        const num = randomNumber();
-        slot.textContent = num;
-        slot.style.color = colorNumber(num);
+    spinBtn.disabled=true;
+    const intervals = slots.map(slot => setInterval(()=>{
+        const num=randomNumber();
+        slot.textContent=num;
+        slot.style.color=colorNumber(num);
     },80));
 
     function detenerFila(fila){
         for(let c=0;c<columnas;c++){
-            const index = fila*columnas+c;
+            const index=fila*columnas+c;
             clearInterval(intervals[index]);
-            const num = randomNumber();
-            slots[index].textContent = num;
-            slots[index].style.color = colorNumber(num);
+            const num=randomNumber();
+            slots[index].textContent=num;
+            slots[index].style.color=colorNumber(num);
             plac.currentTime=0;
             plac.play();
         }
@@ -226,20 +225,22 @@ function spin(){
         setTimeout(()=>{
             detenerFila(f);
             if(f===filas-1){
-                const patrones = detectarPatrones(slots);
-                if(patrones.length>0){
-                    paternSound.currentTime=0;
-                    paternSound.play();
-                    tiradasSinPatron = 0;
-                }else tiradasSinPatron++;
-                aplicarAmplificadores(patrones);
+                tiradasHechas++;
+                document.getElementById("tiradasCounter").textContent="Tiradas: "+tiradasHechas;
+                aplicarAmplificadores(detectarPatrones(slots));
+                // Guardar progreso
+                localStorage.setItem("slotGame_" + currentCode, JSON.stringify({
+                    tiradas: tiradasHechas,
+                    inventory: playerInventory
+                }));
                 spinBtn.disabled=false;
             }
-        },1000 + f*800);
+        }, 1000 + f*800);
     }
 }
 
 spinBtn.addEventListener("click", spin);
 </script>
+
 </body>
 </html>
