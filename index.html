@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tragaperras 5x3 con Patrones</title>
+<title>Tragaperras 5x3</title>
 
 <!-- Fuente arcade -->
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -12,19 +12,21 @@
         margin: 0;
         background: #111;
         color: white;
-        font-family: monospace;
+        font-family: 'Press Start 2P', monospace;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
+        position: relative;
     }
 
     .slot-machine {
-        position: relative;
         background: #222;
         padding: 30px;
         border: 4px solid white;
         text-align: center;
+        position: relative;
+        z-index: 1;
     }
 
     .slots {
@@ -34,8 +36,6 @@
         gap: 15px;
         margin-bottom: 30px;
         justify-content: center;
-        position: relative;
-        z-index: 0; /* Slots debajo del canvas */
     }
 
     .slot {
@@ -45,10 +45,7 @@
         align-items: center;
         justify-content: center;
         background: black;
-        font-family: 'Press Start 2P', monospace;
         transition: color 0.2s;
-        position: relative;
-        z-index: 0;
     }
 
     button {
@@ -57,7 +54,8 @@
         cursor: pointer;
         background: white;
         border: none;
-        margin-top: 20px;
+        z-index: 2;
+        position: relative;
     }
 
     button:disabled {
@@ -65,13 +63,12 @@
         cursor: not-allowed;
     }
 
-    canvas {
+    canvas#patternCanvas {
         position: absolute;
         top: 0;
         left: 0;
         pointer-events: none;
-        image-rendering: pixelated; /* pixelado retro */
-        z-index: 2; /* encima de los slots */
+        z-index: 2;
     }
 </style>
 </head>
@@ -80,8 +77,9 @@
 <div class="slot-machine">
     <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
-    <canvas id="patternCanvas" width="500" height="400"></canvas>
 </div>
+
+<canvas id="patternCanvas"></canvas>
 
 <script>
 const columnas = 5;
@@ -102,9 +100,22 @@ for (let r = 0; r < filas; r++) {
 
 const spinBtn = document.getElementById("spinBtn");
 const plac = new Audio("plac.mp3");
-const paternSound = new Audio("patern.mp3"); // sonido patrón
+const paternSound = new Audio("patern.mp3");
 
-// Función random con probabilidades
+const canvas = document.getElementById("patternCanvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas(){
+    const rect = slotsContainer.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    canvas.style.top = rect.top + "px";
+    canvas.style.left = rect.left + "px";
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// Probabilidades de los números
 function randomNumber() {
     const rand = Math.random() * 100;
     if (rand < 19) return 1;
@@ -116,95 +127,112 @@ function randomNumber() {
     else return 7;
 }
 
-// Función para asignar color según número
+// Colores
 function colorNumber(num) {
     switch(num) {
-        case 1: return "#FF0000"; // rojo
-        case 2: return "#FF7F00"; // naranja
-        case 3: return "#FFFF00"; // amarillo
-        case 4: return "#00FF00"; // verde
-        case 5: return "#0000FF"; // azul
-        case 6: return "#8B00FF"; // morado
-        case 7: return "#FF1493"; // rosa
-        default: return "#FFFFFF"; // blanco por defecto
+        case 1: return "#FF0000";
+        case 2: return "#FF7F00";
+        case 3: return "#FFFF00";
+        case 4: return "#00FF00";
+        case 5: return "#0000FF";
+        case 6: return "#8B00FF";
+        case 7: return "#FF1493";
+        default: return "#FFFFFF";
     }
 }
 
-// Canvas para dibujar patrones
-const canvas = document.getElementById("patternCanvas");
-const ctx = canvas.getContext("2d");
+// Patrones
+function detectarPatrones(grid){
+    const patrones = [];
+    const get = (r,c) => grid[r*columnas + c];
+    
+    // Horizontal 3
+    for(let r=0;r<filas;r++){
+        for(let c=0;c<=columnas-3;c++){
+            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2)) patrones.push([r*columnas+c, r*columnas+c+1, r*columnas+c+2]);
+        }
+    }
+    // Horizontal 4
+    for(let r=0;r<filas;r++){
+        for(let c=0;c<=columnas-4;c++){
+            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2) && get(r,c)===get(r,c+3)) patrones.push([r*columnas+c,r*columnas+c+1,r*columnas+c+2,r*columnas+c+3]);
+        }
+    }
+    // Horizontal 5
+    for(let r=0;r<filas;r++){
+        if(get(r,0)===get(r,1) && get(r,0)===get(r,2) && get(r,0)===get(r,3) && get(r,0)===get(r,4)) patrones.push([r*columnas+0,r*columnas+1,r*columnas+2,r*columnas+3,r*columnas+4]);
+    }
+    // Vertical 3
+    for(let c=0;c<columnas;c++){
+        for(let r=0;r<=filas-3;r++){
+            if(get(r,c)===get(r+1,c) && get(r,c)===get(r+2,c)) patrones.push([r*columnas+c,(r+1)*columnas+c,(r+2)*columnas+c]);
+        }
+    }
+    // Diagonales 3
+    const diagonales = [
+        [0,6,12],[2,6,10],[3,7,11],[1,5,9],[4,8,12],[0,4,8],[1,5,9],[2,6,10]
+    ];
+    diagonales.forEach(d=>{
+        if(slots[d[0]].textContent===slots[d[1]].textContent &&
+           slots[d[0]].textContent===slots[d[2]].textContent){
+            patrones.push(d);
+        }
+    });
+    return patrones;
+}
 
-// Definición de patrones (ejemplo reducido, puedes agregar todos)
-const patrones = [
-    { nombre: "Hor", indices:[[0,1,2],[1,2,3],[2,3,4],[5,6,7],[6,7,8],[7,8,9],[10,11,12],[11,12,13],[12,13,14]] },
-    { nombre: "Ver", indices:[[0,5,10],[1,6,11],[2,7,12],[3,8,13],[4,9,14]] },
-    { nombre: "Hor-L", indices:[[0,1,2,3],[1,2,3,4],[5,6,7,8],[6,7,8,9],[10,11,12,13],[11,12,13,14]] },
-    { nombre: "Hor-XL", indices:[[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]] }
-];
-
-// Función para dibujar línea sobre patrón
+// Dibuja la línea
 function drawPattern(indices){
-    ctx.strokeStyle = "gold";  // color dorado
-    ctx.lineWidth = 12;         // línea más gruesa
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle = "gold";
+    ctx.lineWidth = 12;
     ctx.beginPath();
     indices.forEach((i,j)=>{
-        const rect = slots[i].getBoundingClientRect();
-        const parentRect = slotsContainer.getBoundingClientRect();
-        const x = rect.left - parentRect.left + rect.width/2;
-        const y = rect.top - parentRect.top + rect.height/2;
+        const slotRect = slots[i].getBoundingClientRect();
+        const containerRect = slotsContainer.getBoundingClientRect();
+        const x = slotRect.left - containerRect.left + slotRect.width/2;
+        const y = slotRect.top - containerRect.top + slotRect.height/2;
         if(j===0) ctx.moveTo(x,y);
         else ctx.lineTo(x,y);
     });
     ctx.stroke();
-    // sonido patrón
     paternSound.currentTime = 0;
     paternSound.play();
 }
 
-// Revisar patrones
-function checkPatterns(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    patrones.forEach(p=>{
-        p.indices.forEach(group=>{
-            const first = slots[group[0]].textContent;
-            if(group.every(idx=>slots[idx].textContent===first)){
-                drawPattern(group);
-                console.log("Patrón detectado:",p.nombre);
-            }
-        });
-    });
-}
-
-// Función para girar
-function spin() {
+function spin(){
     spinBtn.disabled = true;
+    ctx.clearRect(0,0,canvas.width,canvas.height); // borra línea anterior
 
-    const intervals = slots.map(slot => setInterval(() => {
+    const intervals = slots.map(slot => setInterval(()=>{
         const num = randomNumber();
         slot.textContent = num;
         slot.style.color = colorNumber(num);
-    }, 50));
+    },80));
 
-    // Frenar cada columna escalonada
-    let stoppedCols = 0;
+    function detenerFila(fila){
+        for(let c=0;c<columnas;c++){
+            const index = fila*columnas + c;
+            clearInterval(intervals[index]);
+            const num = randomNumber();
+            slots[index].textContent = num;
+            slots[index].style.color = colorNumber(num);
+            plac.currentTime = 0;
+            plac.play();
+        }
+    }
 
-    for (let col = 0; col < columnas; col++) {
-        setTimeout(() => {
-            for (let fila = 0; fila < filas; fila++) {
-                const idx = fila*columnas + col;
-                clearInterval(intervals[idx]);
-                const num = randomNumber();
-                slots[idx].textContent = num;
-                slots[idx].style.color = colorNumber(num);
-                plac.currentTime = 0;
-                plac.play();
-            }
-            stoppedCols++;
-            if(stoppedCols===columnas){
+    // Detener filas escalonadas
+    for(let f=0; f<filas; f++){
+        setTimeout(()=>{
+            detenerFila(f);
+            // Si es la última fila, detecta patrones
+            if(f===filas-1){
+                const patrones = detectarPatrones(slots);
+                patrones.forEach(p=>drawPattern(p)); // dibuja cada patrón
                 spinBtn.disabled = false;
-                checkPatterns(); // Detectar patrones solo al final
             }
-        }, 1000 + col*800);
+        }, 1000 + f*800);
     }
 }
 
