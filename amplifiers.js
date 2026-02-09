@@ -1,5 +1,4 @@
 // amplifiers.js
-
 const availableAmplifiers = [
     {name:"Ojo de dios", description:"Cada 5 tiradas hay un patrón de ojo asegurado.", price:15},
     {name:"7 a tutiplem", description:"Aumenta la probabilidad del 7 a un 50%.", price:15},
@@ -26,7 +25,6 @@ closeInventory.addEventListener("click",()=>{inventoryMenu.style.display="none";
 function renderModifiers(){
     modifiersList.innerHTML="";
     let opciones=availableAmplifiers.filter(a=>!playerInventory.some(p=>p.name===a.name));
-    // solo 3 al azar
     opciones.sort(()=>0.5-Math.random());
     opciones=opciones.slice(0,3);
     opciones.forEach((amp,i)=>{
@@ -34,7 +32,7 @@ function renderModifiers(){
         div.style.marginBottom="20px";
         div.innerHTML=`<div style="color:gold;font-size:20px;font-weight:bold;">${amp.name}</div>
             <div style="color:white;font-size:14px;">${amp.description}<br>Precio: ${amp.price} tiradas</div>
-            <button data-index="${i}">Comprar</button>`;
+            <button data-name="${amp.name}">Comprar</button>`;
         const btn=div.querySelector("button");
         btn.addEventListener("click",()=>{buyAmplifier(amp);});
         modifiersList.appendChild(div);
@@ -42,11 +40,11 @@ function renderModifiers(){
 }
 
 function buyAmplifier(amp){
-    const tiradas=parseInt(document.getElementById("tiradasCounter").textContent.split(": ")[1]);
     if(tiradas>=amp.price){
         if(playerInventory.length<7){
             playerInventory.push({...amp});
-            alert(`Compraste "${amp.name}"`);
+            tiradas-=amp.price;
+            updateTiradas();
             renderModifiers();
             renderInventory();
         } else alert("Inventario lleno.");
