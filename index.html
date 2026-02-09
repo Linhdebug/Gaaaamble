@@ -6,69 +6,91 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 body {
-    margin:0;
-    background:#111;
-    color:white;
-    font-family:'Press Start 2P', monospace;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    flex-direction:column;
+    margin: 0;
+    background: #111;
+    color: white;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    position: relative;
 }
 .slot-machine {
-    background:#222;
-    padding:30px;
-    border:4px solid white;
-    text-align:center;
+    background: #222;
+    padding: 30px;
+    border: 4px solid white;
+    text-align: center;
+    position: relative;
+    z-index: 1;
 }
 .slots {
-    display:grid;
-    grid-template-columns:repeat(5,80px);
-    grid-template-rows:repeat(3,120px);
-    gap:15px;
-    margin-bottom:30px;
-    justify-content:center;
+    display: grid;
+    grid-template-columns: repeat(5, 80px);
+    grid-template-rows: repeat(3, 120px);
+    gap: 15px;
+    margin-bottom: 30px;
+    justify-content: center;
 }
 .slot {
-    border:3px solid white;
-    font-size:64px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:black;
-    transition:color 0.2s;
+    border: 3px solid white;
+    font-size: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
+    transition: color 0.2s;
 }
 button {
-    font-size:24px;
-    padding:10px 30px;
-    cursor:pointer;
-    background:white;
-    border:none;
+    font-size: 24px;
+    padding: 10px 30px;
+    cursor: pointer;
+    background: white;
+    border: none;
+    z-index: 2;
+    position: relative;
 }
-button:disabled { background:gray; cursor:not-allowed; }
+button:disabled {
+    background: gray;
+    cursor: not-allowed;
+}
 
+/* Botones menú */
 #modifiersBtn, #inventoryBtn {
-    position:fixed; top:20px; font-size:28px; padding:10px; cursor:pointer;
+    position: fixed;
+    top: 20px;
+    font-size: 28px;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 15;
 }
-#modifiersBtn { right:20px; }
-#inventoryBtn { right:80px; }
+#modifiersBtn { right: 20px; }
+#inventoryBtn { right: 80px; }
 
+/* Menús desplegables */
 .menu {
-    display:none;
-    position:fixed;
-    top:0;
-    right:0;
-    width:300px;
-    height:100%;
-    background:#222;
-    color:white;
-    padding:20px;
-    border-left:4px solid white;
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100%;
+    background: #222;
+    color: white;
+    padding: 20px;
+    border-left: 4px solid white;
+    z-index: 10;
 }
-.menu h3 { margin-top:0; }
+.menu h3 { margin-top: 0; }
 
-#tiradasCounter { margin-top:20px; font-size:20px; text-align:center; }
+/* Contador tiradas */
+#tiradasCounter {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 22px;
+    color: gold;
+}
 </style>
 </head>
 <body>
@@ -76,8 +98,9 @@ button:disabled { background:gray; cursor:not-allowed; }
 <div class="slot-machine">
     <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
-    <div id="tiradasCounter">Tiradas: 0</div>
 </div>
+
+<div id="tiradasCounter">Tiradas: 0</div>
 
 <button id="modifiersBtn">≡</button>
 <button id="inventoryBtn">🎒</button>
@@ -94,102 +117,52 @@ button:disabled { background:gray; cursor:not-allowed; }
     <button id="closeInventory">Atrás</button>
 </div>
 
+<canvas id="patternCanvas"></canvas>
+
+<script src="amplifiers.js"></script>
 <script>
-// --------- Amplificadores ----------
-const availableAmplifiers=[
-    {name:"Ojo de dios", description:"Cada 5 tiradas hay un patrón de ojo asegurado.", price:15},
-    {name:"7 a tutiplem", description:"Aumenta la probabilidad del 7 a un 50%.", price:15},
-    {name:"1 aunque sea", description:"Si en una tirada no sale patrón, la siguiente se asegura un patrón de unos.", price:5},
-    {name:"Como si nada hubiera pasado", description:"Si en tres tiradas no obtienes patrón, se te da 5 tiradas.", price:15}
-];
-let playerInventory=[];
+const columnas = 5;
+const filas = 3;
+const slotsContainer = document.getElementById("slots-container");
+const slots = [];
+const canvas = document.getElementById("patternCanvas");
+const ctx = canvas.getContext("2d");
 
-// Menús
-const modifiersBtn=document.getElementById("modifiersBtn");
-const inventoryBtn=document.getElementById("inventoryBtn");
-const modifiersMenu=document.getElementById("modifiersMenu");
-const inventoryMenu=document.getElementById("inventoryMenu");
-const modifiersList=document.getElementById("modifiersList");
-const inventoryList=document.getElementById("inventoryList");
-const closeModifiers=document.getElementById("closeModifiers");
-const closeInventory=document.getElementById("closeInventory");
-
-modifiersBtn.addEventListener("click",()=>{modifiersMenu.style.display="block"; renderModifiers();});
-closeModifiers.addEventListener("click",()=>{modifiersMenu.style.display="none";});
-inventoryBtn.addEventListener("click",()=>{inventoryMenu.style.display="block"; renderInventory();});
-closeInventory.addEventListener("click",()=>{inventoryMenu.style.display="none";});
-
-function renderModifiers(){
-    modifiersList.innerHTML="";
-    availableAmplifiers.forEach((amp,i)=>{
-        const div=document.createElement("div");
-        div.style.marginBottom="20px";
-        div.innerHTML=`<div style="color:gold;font-weight:bold">${amp.name}</div><div style="color:white;font-size:14px">${amp.description}<br>Precio: ${amp.price}</div><button data-index="${i}">Comprar</button>`;
-        const btn=div.querySelector("button");
-        btn.addEventListener("click",()=>buyAmplifier(i));
-        modifiersList.appendChild(div);
-    });
-}
-function buyAmplifier(i){
-    const amp=availableAmplifiers[i];
-    if(tiradasHechas>=amp.price && playerInventory.length<7){
-        playerInventory.push({...amp});
-        tiradasHechas-=amp.price;
-        updateCounter();
-        alert(`Compraste "${amp.name}"`);
-        renderInventory();
-    }else alert("No tienes tiradas suficientes o inventario lleno");
-}
-function renderInventory(){
-    inventoryList.innerHTML="";
-    playerInventory.forEach((amp,i)=>{
-        const div=document.createElement("div");
-        div.style.marginBottom="20px";
-        div.innerHTML=`<div style="color:gold;font-weight:bold">${amp.name}</div><div style="color:white;font-size:14px">${amp.description}</div><button data-index="${i}">Eliminar</button>`;
-        const btn=div.querySelector("button");
-        btn.addEventListener("click",()=>{playerInventory.splice(i,1); renderInventory();});
-        inventoryList.appendChild(div);
-    });
-}
-
-// --------- Tragaperras ----------
-const columnas=5, filas=3;
-const slotsContainer=document.getElementById("slots-container");
-const slots=[];
-let tiradasHechas=0;
-
-function colorNumber(num){
-    switch(num){
-        case 1:return"#FF0000";
-        case 2:return"#FF7F00";
-        case 3:return"#FFFF00";
-        case 4:return"#00FF00";
-        case 5:return"#0000FF";
-        case 6:return"#8B00FF";
-        case 7:return"#FF1493";
-        default:return"#FFFFFF";
-    }
-}
-
-// Crear slots iniciales
-for(let r=0;r<filas;r++){
+// Crear los 5x3 slots
+for (let r=0;r<filas;r++){
     for(let c=0;c<columnas;c++){
-        const div=document.createElement("div");
+        const div = document.createElement("div");
         div.classList.add("slot");
-        div.textContent=Math.floor(Math.random()*7)+1;
-        div.style.color=colorNumber(parseInt(div.textContent));
+        div.textContent = 1;
         slotsContainer.appendChild(div);
         slots.push(div);
     }
 }
 
-// Actualizar contador
-function updateCounter(){document.getElementById("tiradasCounter").textContent="Tiradas: "+tiradasHechas;}
+// Sonidos
+const plac = new Audio("plac.mp3");
+const paternSound = new Audio("patern.mp3");
 
-function randomNumber(){
-    const has7=playerInventory.some(a=>a.name==="7 a tutiplem");
-    const rand=Math.random()*100;
-    if(has7 && rand<50) return 7;
+// Contador tiradas
+let tiradas = 0;
+const tiradasCounter = document.getElementById("tiradasCounter");
+function updateTiradas(){ tiradasCounter.textContent = `Tiradas: ${tiradas}`; }
+
+// Redimensionar canvas
+function resizeCanvas(){
+    const rect = slotsContainer.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    canvas.style.top = rect.top + "px";
+    canvas.style.left = rect.left + "px";
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// Función para generar número
+function randomNumber() {
+    let rand = Math.random()*100;
+    if(playerInventory.some(a=>a.name=="7 a tutiplem")) rand = Math.random()*2; // 50% 7
     if(rand<19) return 1;
     else if(rand<38) return 2;
     else if(rand<52.9) return 3;
@@ -199,20 +172,99 @@ function randomNumber(){
     else return 7;
 }
 
-function detectarPatrones(grid){
-    const patrones=[];
-    const get=(r,c)=>parseInt(grid[r*columnas+c].textContent);
-    for(let r=0;r<filas;r++){
-        for(let c=0;c<=columnas-3;c++){
-            if(get(r,c)===get(r,c+1)&&get(r,c)===get(r,c+2)) patrones.push([r*columnas+c,r*columnas+c+1,r*columnas+c+2]);
-        }
+// Colores
+function colorNumber(num) {
+    switch(num){
+        case 1: return "#FF0000";
+        case 2: return "#FF7F00";
+        case 3: return "#FFFF00";
+        case 4: return "#00FF00";
+        case 5: return "#0000FF";
+        case 6: return "#8B00FF";
+        case 7: return "#FF1493";
+        default: return "#FFFFFF";
     }
-    return patrones;
 }
 
+// Detección de patrones (basado en tu lista)
+function detectarPatrones(slots){
+    const patterns = [];
+    const get = i=>parseInt(slots[i].textContent);
+
+    // Hor: filas, 3 en horizontal
+    for(let r=0;r<filas;r++){
+        for(let c=0;c<=2;c++){
+            const idx=r*columnas+c;
+            if(get(idx)===get(idx+1)&&get(idx)===get(idx+2)) patterns.push({name:"Hor",casillas:[idx,idx+1,idx+2]});
+        }
+    }
+    // Ver: columnas, 3 vertical
+    for(let c=0;c<columnas;c++){
+        for(let r=0;r<=0;r++){
+            const idx=r*columnas+c;
+            if(get(idx)===get(idx+columnas)&&get(idx)===get(idx+2*columnas)) patterns.push({name:"Ver",casillas:[idx,idx+columnas,idx+2*columnas]});
+        }
+    }
+    // Diag: diagonales 3 (de tu lista)
+    const diags=[[0,6,12],[2,6,10],[3,7,11],[1,5,9],[4,8,12],[0,4,8],[1,5,9],[2,6,10]];
+    diags.forEach(d=>{
+        if(get(d[0])===get(d[1])&&get(d[0])===get(d[2])) patterns.push({name:"Diag",casillas:d});
+    });
+    // Hor-L: horizontal 4
+    for(let r=0;r<filas;r++){
+        if(get(r*columnas)===get(r*columnas+1)&&get(r*columnas)===get(r*columnas+2)&&get(r*columnas)===get(r*columnas+3))
+            patterns.push({name:"Hor-L",casillas:[r*columnas,r*columnas+1,r*columnas+2,r*columnas+3]});
+    }
+    // Hor-XL: horizontal 5
+    for(let r=0;r<filas;r++){
+        if(get(r*columnas)===get(r*columnas+1)&&get(r*columnas)===get(r*columnas+2)&&get(r*columnas)===get(r*columnas+3)&&get(r*columnas)===get(r*columnas+4))
+            patterns.push({name:"Hor-XL",casillas:[r*columnas,r*columnas+1,r*columnas+2,r*columnas+3,r*columnas+4]});
+    }
+    // Patrones especiales (Zig, Zag, Above, Bellow, Eye, Jackpot)
+    const special = {
+        "Zig":[3,11,7,9,15],
+        "Zag":[1,7,13,9,5],
+        "Above":[3,11,7,9,15,12,13,14],
+        "Bellow":[1,7,13,9,5,2,3,4],
+        "Eye":[2,3,6,7,9,10,12,13,14],
+        "Jackpot":[...Array(15).keys()]
+    };
+    Object.keys(special).forEach(k=>{
+        if(special[k].every(i=>i>=0 && i<15)) {
+            if(special[k].every(i=>get(i)===get(special[k][0]))) patterns.push({name:k,casillas:special[k]});
+        }
+    });
+    return patterns;
+}
+
+// Dibujar patrón
+function drawPattern(casillas){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle="gold";
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    casillas.forEach((i,j)=>{
+        const r=slots[i].getBoundingClientRect();
+        const container=slotsContainer.getBoundingClientRect();
+        const x=r.left-container.left+r.width/2;
+        const y=r.top-container.top+r.height/2;
+        if(j===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    paternSound.currentTime=0;
+    paternSound.play();
+}
+
+// Tirada
 function spin(){
     spinBtn.disabled=true;
-    const intervals = slots.map(slot=>setInterval(()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    tiradas++;
+    updateTiradas();
+
+    const intervals=slots.map(slot=>setInterval(()=>{
         const num=randomNumber();
         slot.textContent=num;
         slot.style.color=colorNumber(num);
@@ -220,31 +272,54 @@ function spin(){
 
     function detenerFila(fila){
         for(let c=0;c<columnas;c++){
-            const index=fila*columnas+c;
-            clearInterval(intervals[index]);
-            const num=randomNumber();
-            slots[index].textContent=num;
-            slots[index].style.color=colorNumber(num);
+            const idx=fila*columnas+c;
+            clearInterval(intervals[idx]);
+            let num=randomNumber();
+            // Amplificador "1 aunque sea"
+            if(playerInventory.some(a=>a.name=="1 aunque sea") && !lastHadPattern) num=1;
+            slots[idx].textContent=num;
+            slots[idx].style.color=colorNumber(num);
+            plac.currentTime=0;
+            plac.play();
         }
     }
 
-    for(let f=0;f<filas;f++){
-        setTimeout(()=>{
-            detenerFila(f);
-            if(f===filas-1){
-                tiradasHechas++;
-                updateCounter();
-                const patrones=detectarPatrones(slots);
-                if(patrones.length>0) console.log("Patrones detectados",patrones);
-                spinBtn.disabled=false;
-            }
-        },1000+f*800);
-    }
+    let lastHadPattern=false;
+    setTimeout(()=>{
+        for(let f=0;f<filas;f++){
+            setTimeout(()=>{
+                detenerFila(f);
+                if(f===filas-1){
+                    const pats=detectarPatrones(slots);
+                    if(pats.length>0){
+                        pats.forEach(p=>drawPattern(p.casillas));
+                        lastHadPattern=true;
+                    } else lastHadPattern=false;
+
+                    // Amplificador "Ojo de dios"
+                    if(playerInventory.some(a=>a.name=="Ojo de dios") && tiradas%5===0){
+                        console.log("Ojo de dios activado: Eye forzado");
+                        // Aquí podrías forzar el patrón Eye, por ejemplo pintar
+                    }
+
+                    // Amplificador "Como si nada hubiera pasado"
+                    if(playerInventory.some(a=>a.name=="Como si nada hubiera pasado")){
+                        if(!lastHadPattern) tiradas+=5; // se suman tiradas
+                    }
+
+                    spinBtn.disabled=false;
+
+                    // Cada 3 tiradas, cambiar tienda
+                    if(tiradas%3===0) renderModifiers();
+                }
+            },f*800);
+        }
+    },500);
 }
 
-const spinBtn=document.getElementById("spinBtn");
-spinBtn.addEventListener("click",spin);
-
+// Inicializar slots
+spinBtn.addEventListener("click", spin);
 </script>
+
 </body>
 </html>
