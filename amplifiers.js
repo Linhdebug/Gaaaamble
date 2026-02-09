@@ -27,8 +27,9 @@ const availableAmplifiers = [
 // Inventario del jugador (máx. 7)
 let playerInventory = [];
 
-// Contador de tiradas
+// Contadores de tiradas
 let tiradasHechas = 0;
+let tiradasSinPatron = 0;
 
 // Referencias al DOM
 const modifiersBtn = document.getElementById("modifiersBtn");
@@ -114,28 +115,46 @@ function renderInventory() {
     });
 }
 
-// Función que se puede llamar después de cada tirada
-// para activar efectos según amplificadores
-function aplicarAmplificadores(patronesObtenidos) {
-    playerInventory.forEach(amp => {
-        switch(amp.name) {
-            case "Ojo de dios":
-                // Cada 5 tiradas aseguramos patrón Eye
-                if (tiradasHechas % 5 === 0) {
-                    console.log("Ojo de dios activado: patrón Eye asegurado");
-                    // aquí iría la lógica para forzar patrón Eye
-                }
-                break;
-            case "7 a tutiplem":
-                // aumentar probabilidad del 7
-                // esta lógica debe integrarse en la función randomNumber de index.html
-                break;
-            case "1 aunque sea":
-                // Si la tirada anterior no obtuvo patrón, asegura patrón de unos
-                break;
-            case "Como si nada hubiera pasado":
-                // Si en tres tiradas no hubo patrón, sumar 5 tiradas
-                break;
+// Función que se llama al final de cada tirada
+// patronesObtenidos = array de patrones detectados en esta tirada
+function aplicarAmplificadores(patronesObtenidos, slots, colorNumber, randomNumberFunc) {
+    tiradasHechas++;
+    
+    // Ojo de dios
+    if (playerInventory.some(a => a.name === "Ojo de dios")) {
+        if (tiradasHechas % 5 === 0) {
+            console.log("Ojo de dios activado: patrón Eye asegurado");
+            const eyePatternIndices = [1,2,3,5,6,7,9,10,11];
+            const forcedNum = randomNumberFunc();
+            eyePatternIndices.forEach(i => {
+                slots[i].textContent = forcedNum;
+                slots[i].style.color = colorNumber(forcedNum);
+            });
         }
-    });
+    }
+
+    // 1 aunque sea
+    if (playerInventory.some(a => a.name === "1 aunque sea")) {
+        if (patronesObtenidos.length === 0 && tiradasHechas > 1) {
+            console.log("1 aunque sea activado: patrón de unos asegurado");
+            [0,1,2].forEach(i => {
+                slots[i].textContent = 1;
+                slots[i].style.color = colorNumber(1);
+            });
+        }
+    }
+
+    // Como si nada hubiera pasado
+    if (playerInventory.some(a => a.name === "Como si nada hubiera pasado")) {
+        if (patronesObtenidos.length === 0) tiradasSinPatron++;
+        else tiradasSinPatron = 0;
+
+        if (tiradasSinPatron >= 3) {
+            console.log("Como si nada hubiera pasado activado: +5 tiradas");
+            tiradasHechas += 5;
+            tiradasSinPatron = 0;
+        }
+    }
+
+    // "7 a tutiplem" se aplica dentro de randomNumber de index.html
     }
