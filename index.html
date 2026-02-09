@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>Tragaperras 5x3 con Patrones</title>
+
+<!-- Fuente arcade -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <style>
     body {
         margin: 0;
@@ -27,22 +31,23 @@
         display: grid;
         grid-template-columns: repeat(5, 80px);
         grid-template-rows: repeat(3, 120px);
-        gap: 10px;
+        gap: 15px;
+        margin-bottom: 30px;
         justify-content: center;
         position: relative;
     }
 
     .slot {
         border: 3px solid white;
-        font-size: 48px;
+        font-size: 64px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: black;
+        font-family: 'Press Start 2P', monospace;
+        transition: color 0.2s;
         position: relative;
         z-index: 1;
-        color: yellow; /* Color de los números */
-        font-weight: bold;
     }
 
     button {
@@ -52,6 +57,11 @@
         background: white;
         border: none;
         margin-top: 20px;
+    }
+
+    button:disabled {
+        background: gray;
+        cursor: not-allowed;
     }
 
     canvas {
@@ -65,150 +75,140 @@
 <body>
 
 <div class="slot-machine">
-    <div class="slots" id="slotsContainer">
-        <!-- 15 casillas -->
-        <div class="slot" id="slot0">1</div>
-        <div class="slot" id="slot1">1</div>
-        <div class="slot" id="slot2">1</div>
-        <div class="slot" id="slot3">1</div>
-        <div class="slot" id="slot4">1</div>
-
-        <div class="slot" id="slot5">1</div>
-        <div class="slot" id="slot6">1</div>
-        <div class="slot" id="slot7">1</div>
-        <div class="slot" id="slot8">1</div>
-        <div class="slot" id="slot9">1</div>
-
-        <div class="slot" id="slot10">1</div>
-        <div class="slot" id="slot11">1</div>
-        <div class="slot" id="slot12">1</div>
-        <div class="slot" id="slot13">1</div>
-        <div class="slot" id="slot14">1</div>
-    </div>
+    <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
-    <canvas id="lineCanvas" width="500" height="400"></canvas>
+    <canvas id="patternCanvas" width="500" height="400"></canvas>
 </div>
 
 <script>
+const columnas = 5;
+const filas = 3;
+const slotsContainer = document.getElementById("slots-container");
 const slots = [];
-for(let i=0;i<15;i++){
-    slots.push(document.getElementById("slot"+i));
+
+// Crear los 5x3 slots automáticamente
+for (let r = 0; r < filas; r++) {
+    for (let c = 0; c < columnas; c++) {
+        const div = document.createElement("div");
+        div.classList.add("slot");
+        div.textContent = 1;
+        slotsContainer.appendChild(div);
+        slots.push(div);
+    }
 }
 
 const spinBtn = document.getElementById("spinBtn");
-let intervals = [];
+const plac = new Audio("plac.mp3");
 
-// Probabilidades de los números (1-7)
-const probs = [19,19,14.9,14.9,11.9,11.9,8.4];
-const numbers = [1,2,3,4,5,6,7];
-
-function getRandomNumber() {
-    const rand = Math.random()*100;
-    let acc = 0;
-    for(let i=0;i<probs.length;i++){
-        acc += probs[i];
-        if(rand<=acc) return numbers[i];
-    }
-    return numbers[numbers.length-1];
+// Función random con probabilidades
+function randomNumber() {
+    const rand = Math.random() * 100;
+    if (rand < 19) return 1;
+    else if (rand < 38) return 2;
+    else if (rand < 52.9) return 3;
+    else if (rand < 67.8) return 4;
+    else if (rand < 79.7) return 5;
+    else if (rand < 91.6) return 6;
+    else return 7;
 }
 
-// Patrones
-const patrones = [
-    // Horizontales
-    { nombre: "HOR-1", indices: [0,1,2], multiplicador:1 },
-    { nombre: "HOR-2", indices: [1,2,3], multiplicador:1 },
-    { nombre: "HOR-3", indices: [2,3,4], multiplicador:1 },
-    { nombre: "HOR-4", indices: [5,6,7], multiplicador:1 },
-    { nombre: "HOR-5", indices: [6,7,8], multiplicador:1 },
-    { nombre: "HOR-6", indices: [7,8,9], multiplicador:1 },
-    { nombre: "HOR-7", indices: [10,11,12], multiplicador:1 },
-    { nombre: "HOR-8", indices: [11,12,13], multiplicador:1 },
-    { nombre: "HOR-9", indices: [12,13,14], multiplicador:1 },
-    // Horizontales largas
-    { nombre: "HOR-L", indices: [0,1,2,3], multiplicador:2 },
-    { nombre: "HOR-L2", indices: [1,2,3,4], multiplicador:2 },
-    { nombre: "HOR-XL", indices: [0,1,2,3,4], multiplicador:3 },
-    { nombre: "HOR-XL2", indices: [5,6,7,8,9], multiplicador:3 },
-    { nombre: "HOR-XL3", indices: [10,11,12,13,14], multiplicador:3 },
-    // Verticales
-    { nombre: "VER-1", indices: [0,5,10], multiplicador:1 },
-    { nombre: "VER-2", indices: [1,6,11], multiplicador:1 },
-    { nombre: "VER-3", indices: [2,7,12], multiplicador:1 },
-    { nombre: "VER-4", indices: [3,8,13], multiplicador:1 },
-    { nombre: "VER-5", indices: [4,9,14], multiplicador:1 },
-    // Diagonales
-    { nombre: "DIAG-1", indices: [0,6,12], multiplicador:1 },
-    { nombre: "DIAG-2", indices: [2,6,10], multiplicador:1 },
-    { nombre: "DIAG-3", indices: [4,8,12], multiplicador:1 },
-    { nombre: "DIAG-4", indices: [0,7,14], multiplicador:1 },
-    { nombre: "DIAG-5", indices: [1,7,13], multiplicador:1 },
-    { nombre: "DIAG-6", indices: [3,7,11], multiplicador:1 },
-    // Especiales
-    { nombre: "ZIG", indices: [2,10,6,8,14], multiplicador:4 },
-    { nombre: "ZAG", indices: [0,6,12,8,4], multiplicador:4 },
-    { nombre: "ABOVE", indices: [2,10,6,8,14,11,12,13], multiplicador:7 },
-    { nombre: "BELOW", indices: [0,6,12,8,4,1,2,3], multiplicador:7 },
-    { nombre: "EYE", indices: [1,2,2,5,6,8,9,11,12,13], multiplicador:8 },
-    { nombre: "JACKPOT", indices: [...Array(15).keys()], multiplicador:10 }
-];
+// Función para asignar color según número
+function colorNumber(num) {
+    switch(num) {
+        case 1: return "#FF0000"; // rojo
+        case 2: return "#FF7F00"; // naranja
+        case 3: return "#FFFF00"; // amarillo
+        case 4: return "#00FF00"; // verde
+        case 5: return "#0000FF"; // azul
+        case 6: return "#8B00FF"; // morado
+        case 7: return "#FF1493"; // rosa
+        default: return "#FFFFFF"; // blanco por defecto
+    }
+}
 
-// Canvas
-const canvas = document.getElementById("lineCanvas");
+// Canvas para dibujar patrones
+const canvas = document.getElementById("patternCanvas");
 const ctx = canvas.getContext("2d");
 
-function drawLine(indices){
-    ctx.strokeStyle = "red"; // Color diferente al de los números
+// Definición de patrones
+const patrones = [
+    { nombre: "Hor", indices:[[0,1,2],[1,2,3],[2,3,4],[5,6,7],[6,7,8],[7,8,9],[10,11,12],[11,12,13],[12,13,14]] },
+    { nombre: "Hor-L", indices:[[0,1,2,3],[1,2,3,4],[5,6,7,8],[6,7,8,9],[10,11,12,13],[11,12,13,14]] },
+    { nombre: "Hor-XL", indices:[[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]] },
+    { nombre: "Ver", indices:[[0,5,10],[1,6,11],[2,7,12],[3,8,13],[4,9,14]] },
+    { nombre: "Diag", indices:[[0,6,12],[2,6,10],[4,8,12],[0,7,14],[1,7,13],[3,7,11]] },
+    { nombre: "Zig", indices:[[2,10,6,8,14]] },
+    { nombre: "Zag", indices:[[0,6,12,8,4]] },
+    { nombre: "Above", indices:[[2,10,6,8,14,11,12,13]] },
+    { nombre: "Below", indices:[[0,6,12,8,4,1,2,3]] },
+    { nombre: "Eye", indices:[[1,2,2,5,6,8,9,11,12,13]] },
+    { nombre: "Jackpot", indices:[...Array(15).keys()] }
+];
+
+// Función para dibujar línea sobre patrón
+function drawPattern(indices){
+    ctx.strokeStyle = "red";
     ctx.lineWidth = 6;
     ctx.beginPath();
-    for(let i=0;i<indices.length;i++){
-        const slot = slots[indices[i]];
-        const rect = slot.getBoundingClientRect();
-        const parentRect = slot.parentElement.getBoundingClientRect();
+    indices.forEach((i,j)=>{
+        const rect = slots[i].getBoundingClientRect();
+        const parentRect = slotsContainer.getBoundingClientRect();
         const x = rect.left - parentRect.left + rect.width/2;
         const y = rect.top - parentRect.top + rect.height/2;
-        if(i===0) ctx.moveTo(x,y);
+        if(j===0) ctx.moveTo(x,y);
         else ctx.lineTo(x,y);
-    }
+    });
     ctx.stroke();
 }
 
+// Revisar patrones
 function checkPatterns(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     patrones.forEach(p=>{
-        const first = slots[p.indices[0]].textContent;
-        if(p.indices.every(idx => slots[idx].textContent === first)){
-            drawLine(p.indices);
-            console.log("Patrón detectado:",p.nombre,"Multiplicador:",p.multiplicador);
-        }
-    });
-}
-
-function spin(){
-    spinBtn.disabled = true;
-    intervals.forEach(i=>clearInterval(i));
-    intervals=[];
-    let stoppedCount = 0;
-
-    slots.forEach((slot,index)=>{
-        const interval = setInterval(()=>{
-            slot.textContent = getRandomNumber();
-        },50);
-        intervals.push(interval);
-
-        setTimeout(()=>{
-            clearInterval(interval);
-            slot.textContent = getRandomNumber();
-            stoppedCount++;
-
-            if(stoppedCount===slots.length){
-                spinBtn.disabled=false;
-                checkPatterns(); // Solo después de que todos se detengan
+        p.indices.forEach(group=>{
+            const first = slots[group[0]].textContent;
+            if(group.every(idx=>slots[idx].textContent===first)){
+                drawPattern(group);
+                console.log("Patrón detectado:",p.nombre);
             }
-        },1000 + (index%5)*500); // Frenado por fila
+        });
     });
 }
 
-spinBtn.addEventListener("click",spin);
+// Función para girar
+function spin() {
+    spinBtn.disabled = true;
+
+    const intervals = slots.map(slot => setInterval(() => {
+        const num = randomNumber();
+        slot.textContent = num;
+        slot.style.color = colorNumber(num);
+    }, 50));
+
+    // Frenar cada columna escalonada
+    let stoppedCols = 0;
+
+    for (let col = 0; col < columnas; col++) {
+        setTimeout(() => {
+            for (let fila = 0; fila < filas; fila++) {
+                const idx = fila*columnas + col;
+                clearInterval(intervals[idx]);
+                const num = randomNumber();
+                slots[idx].textContent = num;
+                slots[idx].style.color = colorNumber(num);
+                plac.currentTime = 0;
+                plac.play();
+            }
+            stoppedCols++;
+            if(stoppedCols===columnas){
+                spinBtn.disabled = false;
+                checkPatterns(); // Detectar patrones solo al final
+            }
+        }, 1000 + col*800);
+    }
+}
+
+spinBtn.addEventListener("click", spin);
 </script>
 
 </body>
