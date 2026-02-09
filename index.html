@@ -25,8 +25,6 @@
         padding: 30px;
         border: 4px solid white;
         text-align: center;
-        position: relative;
-        z-index: 1;
     }
 
     .slots {
@@ -54,21 +52,11 @@
         cursor: pointer;
         background: white;
         border: none;
-        z-index: 2;
-        position: relative;
     }
 
     button:disabled {
         background: gray;
         cursor: not-allowed;
-    }
-
-    canvas#patternCanvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-        z-index: 2;
     }
 </style>
 </head>
@@ -78,8 +66,6 @@
     <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
 </div>
-
-<canvas id="patternCanvas"></canvas>
 
 <script>
 const columnas = 5;
@@ -101,19 +87,6 @@ for (let r = 0; r < filas; r++) {
 const spinBtn = document.getElementById("spinBtn");
 const plac = new Audio("plac.mp3");
 const paternSound = new Audio("patern.mp3");
-
-const canvas = document.getElementById("patternCanvas");
-const ctx = canvas.getContext("2d");
-
-function resizeCanvas(){
-    const rect = slotsContainer.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    canvas.style.top = rect.top + "px";
-    canvas.style.left = rect.left + "px";
-}
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
 
 // Probabilidades de los números
 function randomNumber() {
@@ -141,31 +114,31 @@ function colorNumber(num) {
     }
 }
 
-// Patrones
+// Detectar patrones
 function detectarPatrones(grid){
     const patrones = [];
     const get = (r,c) => grid[r*columnas + c];
-    
+
     // Horizontal 3
     for(let r=0;r<filas;r++){
         for(let c=0;c<=columnas-3;c++){
-            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2)) patrones.push([r*columnas+c, r*columnas+c+1, r*columnas+c+2]);
+            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2)) patrones.push("Hor3");
         }
     }
     // Horizontal 4
     for(let r=0;r<filas;r++){
         for(let c=0;c<=columnas-4;c++){
-            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2) && get(r,c)===get(r,c+3)) patrones.push([r*columnas+c,r*columnas+c+1,r*columnas+c+2,r*columnas+c+3]);
+            if(get(r,c)===get(r,c+1) && get(r,c)===get(r,c+2) && get(r,c)===get(r,c+3)) patrones.push("Hor4");
         }
     }
     // Horizontal 5
     for(let r=0;r<filas;r++){
-        if(get(r,0)===get(r,1) && get(r,0)===get(r,2) && get(r,0)===get(r,3) && get(r,0)===get(r,4)) patrones.push([r*columnas+0,r*columnas+1,r*columnas+2,r*columnas+3,r*columnas+4]);
+        if(get(r,0)===get(r,1) && get(r,0)===get(r,2) && get(r,0)===get(r,3) && get(r,0)===get(r,4)) patrones.push("Hor5");
     }
     // Vertical 3
     for(let c=0;c<columnas;c++){
         for(let r=0;r<=filas-3;r++){
-            if(get(r,c)===get(r+1,c) && get(r,c)===get(r+2,c)) patrones.push([r*columnas+c,(r+1)*columnas+c,(r+2)*columnas+c]);
+            if(get(r,c)===get(r+1,c) && get(r,c)===get(r+2,c)) patrones.push("Ver3");
         }
     }
     // Diagonales 3
@@ -175,34 +148,15 @@ function detectarPatrones(grid){
     diagonales.forEach(d=>{
         if(slots[d[0]].textContent===slots[d[1]].textContent &&
            slots[d[0]].textContent===slots[d[2]].textContent){
-            patrones.push(d);
+            patrones.push("Diag3");
         }
     });
-    return patrones;
-}
 
-// Dibuja la línea
-function drawPattern(indices){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle = "gold";
-    ctx.lineWidth = 12;
-    ctx.beginPath();
-    indices.forEach((i,j)=>{
-        const slotRect = slots[i].getBoundingClientRect();
-        const containerRect = slotsContainer.getBoundingClientRect();
-        const x = slotRect.left - containerRect.left + slotRect.width/2;
-        const y = slotRect.top - containerRect.top + slotRect.height/2;
-        if(j===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
-    paternSound.currentTime = 0;
-    paternSound.play();
+    return patrones;
 }
 
 function spin(){
     spinBtn.disabled = true;
-    ctx.clearRect(0,0,canvas.width,canvas.height); // borra línea anterior
 
     const intervals = slots.map(slot => setInterval(()=>{
         const num = randomNumber();
@@ -226,10 +180,13 @@ function spin(){
     for(let f=0; f<filas; f++){
         setTimeout(()=>{
             detenerFila(f);
-            // Si es la última fila, detecta patrones
             if(f===filas-1){
                 const patrones = detectarPatrones(slots);
-                patrones.forEach(p=>drawPattern(p)); // dibuja cada patrón
+                if(patrones.length>0){
+                    paternSound.currentTime = 0;
+                    paternSound.play();
+                    console.log("Patrones detectados:", patrones);
+                }
                 spinBtn.disabled = false;
             }
         }, 1000 + f*800);
