@@ -69,6 +69,7 @@
         top: 0;
         left: 0;
         pointer-events: none;
+        image-rendering: pixelated; /* pixelado retro */
     }
 </style>
 </head>
@@ -99,6 +100,7 @@ for (let r = 0; r < filas; r++) {
 
 const spinBtn = document.getElementById("spinBtn");
 const plac = new Audio("plac.mp3");
+const paternSound = new Audio("patern.mp3"); // sonido patrón
 
 // Función random con probabilidades
 function randomNumber() {
@@ -147,8 +149,8 @@ const patrones = [
 
 // Función para dibujar línea sobre patrón
 function drawPattern(indices){
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 6;
+    ctx.strokeStyle = "gold";  // color dorado
+    ctx.lineWidth = 8;          // más gruesa
     ctx.beginPath();
     indices.forEach((i,j)=>{
         const rect = slots[i].getBoundingClientRect();
@@ -159,6 +161,9 @@ function drawPattern(indices){
         else ctx.lineTo(x,y);
     });
     ctx.stroke();
+    // sonido patrón
+    paternSound.currentTime = 0;
+    paternSound.play();
 }
 
 // Revisar patrones
