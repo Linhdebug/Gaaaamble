@@ -80,9 +80,6 @@
     }
 
     const spinBtn = document.getElementById("spinBtn");
-    let intervals = [];
-
-    // Sonido plac
     const plac = new Audio("plac.mp3");
 
     function randomNumber() {
@@ -92,31 +89,30 @@
     function spin() {
         spinBtn.disabled = true;
 
-        // Limpiar intervalos anteriores
-        intervals.forEach(i => clearInterval(i));
-        intervals = [];
+        // Girar todos los slots rápidamente
+        const intervals = slots.map(slot => setInterval(() => {
+            slot.textContent = randomNumber();
+        }, 80));
 
-        // Cada slot se detendrá individualmente
-        slots.forEach((slot, index) => {
-            const interval = setInterval(() => {
-                slot.textContent = randomNumber();
-            }, 80);
-
-            intervals.push(interval);
-
-            // Cada slot se detiene con retraso escalonado
-            setTimeout(() => {
-                clearInterval(interval);
-                slot.textContent = randomNumber();
+        // Función para detener una columna (todos sus slots)
+        function detenerColumna(col) {
+            for (let fila = 0; fila < filas; fila++) {
+                const index = fila * columnas + col; // calcular índice
+                clearInterval(intervals[index]);
+                slots[index].textContent = randomNumber();
                 plac.currentTime = 0;
                 plac.play();
+            }
+        }
 
-                // Habilitar botón al detener el último slot
-                if (index === slots.length - 1) {
-                    spinBtn.disabled = false;
-                }
-            }, 800 + index * 300); // 0.3s de retraso entre cada slot
-        });
+        // Detener columnas escalonadamente
+        for (let col = 0; col < columnas; col++) {
+            setTimeout(() => {
+                detenerColumna(col);
+                // Habilitar botón después de última columna
+                if (col === columnas - 1) spinBtn.disabled = false;
+            }, 1000 + col * 800); // cada columna tarda más
+        }
     }
 
     spinBtn.addEventListener("click", spin);
