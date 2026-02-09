@@ -67,6 +67,11 @@
 </div>
 
 <script>
+    // 🔐 Protección login
+    if (localStorage.getItem("logged") !== "true") {
+        window.location.href = "login.html";
+    }
+
     const slots = [
         document.getElementById("slot1"),
         document.getElementById("slot2"),
