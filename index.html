@@ -117,16 +117,12 @@ button:disabled {
     <button id="closeInventory">Atrás</button>
 </div>
 
-<canvas id="patternCanvas"></canvas>
-
 <script src="amplifiers.js"></script>
 <script>
 const columnas = 5;
 const filas = 3;
 const slotsContainer = document.getElementById("slots-container");
 const slots = [];
-const canvas = document.getElementById("patternCanvas");
-const ctx = canvas.getContext("2d");
 
 // Crear los 5x3 slots
 for (let r=0;r<filas;r++){
@@ -147,17 +143,6 @@ const paternSound = new Audio("patern.mp3");
 let tiradas = 0;
 const tiradasCounter = document.getElementById("tiradasCounter");
 function updateTiradas(){ tiradasCounter.textContent = `Tiradas: ${tiradas}`; }
-
-// Redimensionar canvas
-function resizeCanvas(){
-    const rect = slotsContainer.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    canvas.style.top = rect.top + "px";
-    canvas.style.left = rect.left + "px";
-}
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
 
 // Función para generar número
 function randomNumber() {
@@ -186,85 +171,13 @@ function colorNumber(num) {
     }
 }
 
-// Detección de patrones (basado en tu lista)
-function detectarPatrones(slots){
-    const patterns = [];
-    const get = i=>parseInt(slots[i].textContent);
-
-    // Hor: filas, 3 en horizontal
-    for(let r=0;r<filas;r++){
-        for(let c=0;c<=2;c++){
-            const idx=r*columnas+c;
-            if(get(idx)===get(idx+1)&&get(idx)===get(idx+2)) patterns.push({name:"Hor",casillas:[idx,idx+1,idx+2]});
-        }
-    }
-    // Ver: columnas, 3 vertical
-    for(let c=0;c<columnas;c++){
-        for(let r=0;r<=0;r++){
-            const idx=r*columnas+c;
-            if(get(idx)===get(idx+columnas)&&get(idx)===get(idx+2*columnas)) patterns.push({name:"Ver",casillas:[idx,idx+columnas,idx+2*columnas]});
-        }
-    }
-    // Diag: diagonales 3 (de tu lista)
-    const diags=[[0,6,12],[2,6,10],[3,7,11],[1,5,9],[4,8,12],[0,4,8],[1,5,9],[2,6,10]];
-    diags.forEach(d=>{
-        if(get(d[0])===get(d[1])&&get(d[0])===get(d[2])) patterns.push({name:"Diag",casillas:d});
-    });
-    // Hor-L: horizontal 4
-    for(let r=0;r<filas;r++){
-        if(get(r*columnas)===get(r*columnas+1)&&get(r*columnas)===get(r*columnas+2)&&get(r*columnas)===get(r*columnas+3))
-            patterns.push({name:"Hor-L",casillas:[r*columnas,r*columnas+1,r*columnas+2,r*columnas+3]});
-    }
-    // Hor-XL: horizontal 5
-    for(let r=0;r<filas;r++){
-        if(get(r*columnas)===get(r*columnas+1)&&get(r*columnas)===get(r*columnas+2)&&get(r*columnas)===get(r*columnas+3)&&get(r*columnas)===get(r*columnas+4))
-            patterns.push({name:"Hor-XL",casillas:[r*columnas,r*columnas+1,r*columnas+2,r*columnas+3,r*columnas+4]});
-    }
-    // Patrones especiales (Zig, Zag, Above, Bellow, Eye, Jackpot)
-    const special = {
-        "Zig":[3,11,7,9,15],
-        "Zag":[1,7,13,9,5],
-        "Above":[3,11,7,9,15,12,13,14],
-        "Bellow":[1,7,13,9,5,2,3,4],
-        "Eye":[2,3,6,7,9,10,12,13,14],
-        "Jackpot":[...Array(15).keys()]
-    };
-    Object.keys(special).forEach(k=>{
-        if(special[k].every(i=>i>=0 && i<15)) {
-            if(special[k].every(i=>get(i)===get(special[k][0]))) patterns.push({name:k,casillas:special[k]});
-        }
-    });
-    return patterns;
-}
-
-// Dibujar patrón
-function drawPattern(casillas){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle="gold";
-    ctx.lineWidth=10;
-    ctx.beginPath();
-    casillas.forEach((i,j)=>{
-        const r=slots[i].getBoundingClientRect();
-        const container=slotsContainer.getBoundingClientRect();
-        const x=r.left-container.left+r.width/2;
-        const y=r.top-container.top+r.height/2;
-        if(j===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
-    paternSound.currentTime=0;
-    paternSound.play();
-}
-
 // Tirada
 function spin(){
     spinBtn.disabled=true;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
     tiradas++;
     updateTiradas();
 
-    const intervals=slots.map(slot=>setInterval(()=>{
+    const intervals = slots.map(slot=>setInterval(()=>{
         const num=randomNumber();
         slot.textContent=num;
         slot.style.color=colorNumber(num);
@@ -285,41 +198,35 @@ function spin(){
     }
 
     let lastHadPattern=false;
-    setTimeout(()=>{
-        for(let f=0;f<filas;f++){
-            setTimeout(()=>{
-                detenerFila(f);
-                if(f===filas-1){
-                    const pats=detectarPatrones(slots);
-                    if(pats.length>0){
-                        pats.forEach(p=>drawPattern(p.casillas));
-                        lastHadPattern=true;
-                    } else lastHadPattern=false;
 
-                    // Amplificador "Ojo de dios"
-                    if(playerInventory.some(a=>a.name=="Ojo de dios") && tiradas%5===0){
-                        console.log("Ojo de dios activado: Eye forzado");
-                        // Aquí podrías forzar el patrón Eye, por ejemplo pintar
-                    }
+    for(let f=0;f<filas;f++){
+        setTimeout(()=>{
+            detenerFila(f);
+            if(f===filas-1){
+                const patrones=Array.from({length:15},(_,i)=>parseInt(slots[i].textContent));
+                const hasPattern=false; // placeholder, si quieres después integrar todos los patrones
+                if(hasPattern) lastHadPattern=true; else lastHadPattern=false;
 
-                    // Amplificador "Como si nada hubiera pasado"
-                    if(playerInventory.some(a=>a.name=="Como si nada hubiera pasado")){
-                        if(!lastHadPattern) tiradas+=5; // se suman tiradas
-                    }
-
-                    spinBtn.disabled=false;
-
-                    // Cada 3 tiradas, cambiar tienda
-                    if(tiradas%3===0) renderModifiers();
+                // Amplificador "Ojo de dios"
+                if(playerInventory.some(a=>a.name=="Ojo de dios") && tiradas%5===0){
+                    console.log("Ojo de dios activado: Eye forzado");
                 }
-            },f*800);
-        }
-    },500);
+
+                // Amplificador "Como si nada hubiera pasado"
+                if(playerInventory.some(a=>a.name=="Como si nada hubiera pasado") && !lastHadPattern){
+                    tiradas+=5;
+                    updateTiradas();
+                }
+
+                spinBtn.disabled=false;
+
+                if(tiradas%3===0) renderModifiers();
+            }
+        },f*800);
+    }
 }
 
-// Inicializar slots
 spinBtn.addEventListener("click", spin);
 </script>
-
 </body>
 </html>
