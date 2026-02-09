@@ -63,11 +63,6 @@
 </div>
 
 <script>
-    // 🔐 Protección login
-    if (localStorage.getItem("logged") !== "true") {
-        window.location.href = "login.html";
-    }
-
     const columnas = 5;
     const filas = 3;
     const slotsContainer = document.getElementById("slots-container");
@@ -78,7 +73,7 @@
         for (let c = 0; c < columnas; c++) {
             const div = document.createElement("div");
             div.classList.add("slot");
-            div.textContent = 1; // valor inicial
+            div.textContent = 1;
             slotsContainer.appendChild(div);
             slots.push(div);
         }
@@ -87,7 +82,7 @@
     const spinBtn = document.getElementById("spinBtn");
     let intervals = [];
 
-    // 🎵 Sonido plac
+    // Sonido plac
     const plac = new Audio("plac.mp3");
 
     function randomNumber() {
@@ -101,35 +96,27 @@
         intervals.forEach(i => clearInterval(i));
         intervals = [];
 
-        // Girar columna por columna
-        for (let col = 0; col < columnas; col++) {
-            const colSlots = slots.slice(col * filas, col * filas + filas);
-
+        // Cada slot se detendrá individualmente
+        slots.forEach((slot, index) => {
             const interval = setInterval(() => {
-                colSlots.forEach(slot => {
-                    slot.textContent = randomNumber();
-                });
+                slot.textContent = randomNumber();
             }, 80);
 
             intervals.push(interval);
 
-            // Parar cada columna después de cierto tiempo
+            // Cada slot se detiene con retraso escalonado
             setTimeout(() => {
                 clearInterval(interval);
-                colSlots.forEach(slot => {
-                    slot.textContent = randomNumber();
+                slot.textContent = randomNumber();
+                plac.currentTime = 0;
+                plac.play();
 
-                    // 🎵 Sonido al detener cada slot
-                    plac.currentTime = 0;
-                    plac.play();
-                });
-
-                // Habilitar el botón al final de la última columna
-                if (col === columnas - 1) {
+                // Habilitar botón al detener el último slot
+                if (index === slots.length - 1) {
                     spinBtn.disabled = false;
                 }
-            }, 1000 + col * 800); // cada columna tarda un poco más en parar
-        }
+            }, 800 + index * 300); // 0.3s de retraso entre cada slot
+        });
     }
 
     spinBtn.addEventListener("click", spin);
