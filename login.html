@@ -2,70 +2,57 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
-
+<title>Login - Tragaperras</title>
 <style>
     body {
-        background: black;
-        color: white;
-        font-family: monospace;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
+        margin:0;
+        background:#111;
+        color:white;
+        font-family:'Press Start 2P', monospace;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        flex-direction:column;
     }
-
-    .box {
-        border: 3px solid white;
-        padding: 30px;
-        text-align: center;
-    }
-
     input {
-        font-size: 20px;
-        padding: 8px;
-        margin-top: 15px;
-        width: 200px;
-        text-align: center;
+        font-size:20px;
+        padding:10px;
+        margin-bottom:20px;
+        text-align:center;
     }
-
     button {
-        margin-top: 20px;
-        font-size: 20px;
-        padding: 8px 20px;
-        cursor: pointer;
-    }
-
-    .error {
-        color: red;
-        margin-top: 15px;
-        display: none;
+        font-size:20px;
+        padding:10px 20px;
+        cursor:pointer;
+        background:white;
+        border:none;
     }
 </style>
 </head>
 <body>
-
-<div class="box">
-    <h1>ACCESO</h1>
-    <input type="password" id="code" placeholder="Código">
-    <br>
-    <button onclick="login()">ENTRAR</button>
-    <div class="error" id="error">Código incorrecto</div>
-</div>
+<h1>Introducir código de jugador</h1>
+<input type="text" id="playerCode" placeholder="Tu código">
+<button id="enterBtn">Entrar</button>
 
 <script>
-function login() {
-    const code = document.getElementById("code").value;
-
-    if (code === "gamble") {
-        localStorage.setItem("logged", "true");
-        window.location.href = "index.html";
-    } else {
-        document.getElementById("error").style.display = "block";
+document.getElementById("enterBtn").addEventListener("click",()=>{
+    const code = document.getElementById("playerCode").value.trim();
+    if(code.length<1){
+        alert("Introduce un código válido");
+        return;
     }
-}
+    sessionStorage.setItem("currentCode",code);
+    // Si no existe partida en localStorage, se inicializa
+    if(!localStorage.getItem("slotGame_" + code)){
+        const initData = {
+            tiradas:0,
+            inventory:[],
+        };
+        localStorage.setItem("slotGame_" + code,JSON.stringify(initData));
+    }
+    window.location.href="index.html";
+});
 </script>
-
 </body>
 </html>
