@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tragaperras</title>
+<title>Tragaperras 5x3</title>
 
 <style>
     body {
@@ -24,15 +24,15 @@
     }
 
     .slots {
-        display: flex;
-        gap: 20px;
+        display: grid;
+        grid-template-columns: repeat(5, 80px);
+        grid-template-rows: repeat(3, 120px);
+        gap: 15px;
         margin-bottom: 30px;
         justify-content: center;
     }
 
     .slot {
-        width: 80px;
-        height: 120px;
         border: 3px solid white;
         font-size: 64px;
         display: flex;
@@ -58,10 +58,8 @@
 <body>
 
 <div class="slot-machine">
-    <div class="slots">
-        <div class="slot" id="slot1">1</div>
-        <div class="slot" id="slot2">1</div>
-        <div class="slot" id="slot3">1</div>
+    <div class="slots" id="slots-container">
+        <!-- Slots se generarán automáticamente -->
     </div>
     <button id="spinBtn">GIRAR</button>
 </div>
@@ -72,18 +70,24 @@
         window.location.href = "login.html";
     }
 
-    const slots = [
-        document.getElementById("slot1"),
-        document.getElementById("slot2"),
-        document.getElementById("slot3")
-    ];
+    const columnas = 5;
+    const filas = 3;
+    const slotsContainer = document.getElementById("slots-container");
+    const slots = [];
+
+    // Crear los 5x3 slots automáticamente
+    for (let r = 0; r < filas; r++) {
+        for (let c = 0; c < columnas; c++) {
+            const div = document.createElement("div");
+            div.classList.add("slot");
+            div.textContent = 1; // valor inicial
+            slotsContainer.appendChild(div);
+            slots.push(div);
+        }
+    }
 
     const spinBtn = document.getElementById("spinBtn");
-
     let intervals = [];
-
-    // 🎵 Sonido
-    const plac = new Audio("plac.mp3");
 
     function randomNumber() {
         return Math.floor(Math.random() * 9) + 1;
@@ -96,28 +100,29 @@
         intervals.forEach(i => clearInterval(i));
         intervals = [];
 
-        // Girar los tres
-        slots.forEach((slot, index) => {
+        // Girar columna por columna
+        for (let col = 0; col < columnas; col++) {
+            const colSlots = slots.slice(col * filas, col * filas + filas);
+
             const interval = setInterval(() => {
-                slot.textContent = randomNumber();
+                colSlots.forEach(slot => {
+                    slot.textContent = randomNumber();
+                });
             }, 80);
 
             intervals.push(interval);
 
-            // Parar uno por uno
+            // Parar cada columna después de cierto tiempo
             setTimeout(() => {
                 clearInterval(interval);
-                slot.textContent = randomNumber();
+                colSlots.forEach(slot => slot.textContent = randomNumber());
 
-                // Reproducir sonido al parar cada número
-                plac.currentTime = 0;
-                plac.play();
-
-                if (index === slots.length - 1) {
+                // Habilitar el botón al final de la última columna
+                if (col === columnas - 1) {
                     spinBtn.disabled = false;
                 }
-            }, 1000 + index * 600);
-        });
+            }, 1000 + col * 600);
+        }
     }
 
     spinBtn.addEventListener("click", spin);
