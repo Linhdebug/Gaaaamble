@@ -58,9 +58,7 @@
 <body>
 
 <div class="slot-machine">
-    <div class="slots" id="slots-container">
-        <!-- Slots se generarán automáticamente -->
-    </div>
+    <div class="slots" id="slots-container"></div>
     <button id="spinBtn">GIRAR</button>
 </div>
 
@@ -89,6 +87,9 @@
     const spinBtn = document.getElementById("spinBtn");
     let intervals = [];
 
+    // 🎵 Sonido plac
+    const plac = new Audio("plac.mp3");
+
     function randomNumber() {
         return Math.floor(Math.random() * 9) + 1;
     }
@@ -115,13 +116,19 @@
             // Parar cada columna después de cierto tiempo
             setTimeout(() => {
                 clearInterval(interval);
-                colSlots.forEach(slot => slot.textContent = randomNumber());
+                colSlots.forEach(slot => {
+                    slot.textContent = randomNumber();
+
+                    // 🎵 Sonido al detener cada slot
+                    plac.currentTime = 0;
+                    plac.play();
+                });
 
                 // Habilitar el botón al final de la última columna
                 if (col === columnas - 1) {
                     spinBtn.disabled = false;
                 }
-            }, 1000 + col * 600);
+            }, 1000 + col * 800); // cada columna tarda un poco más en parar
         }
     }
 
