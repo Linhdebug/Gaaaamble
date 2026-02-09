@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<style>
+    body {
+        background: black;
+        color: white;
+        font-family: monospace;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    .box {
+        border: 3px solid white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    input {
+        font-size: 20px;
+        padding: 8px;
+        margin-top: 15px;
+        width: 200px;
+        text-align: center;
+    }
+
+    button {
+        margin-top: 20px;
+        font-size: 20px;
+        padding: 8px 20px;
+        cursor: pointer;
+    }
+
+    .error {
+        color: red;
+        margin-top: 15px;
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h1>ACCESO</h1>
+    <input type="password" id="code" placeholder="Código">
+    <br>
+    <button onclick="login()">ENTRAR</button>
+    <div class="error" id="error">Código incorrecto</div>
+</div>
+
+<script>
+function login() {
+    const code = document.getElementById("code").value;
+
+    if (code === "gamble") {
+        localStorage.setItem("logged", "true");
+        window.location.href = "index.html";
+    } else {
+        document.getElementById("error").style.display = "block";
+    }
+}
+</script>
+
+</body>
+</html>
