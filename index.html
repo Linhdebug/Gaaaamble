@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Tragaperras</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 <style>
@@ -13,270 +12,265 @@ body {
     color: white;
     font-family: 'Press Start 2P', monospace;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
 }
-
-/* ===== CONTENEDOR ===== */
-.container {
-    display: flex;
-    gap: 30px;
-}
-
-/* ===== MAQUINA ===== */
 .slot-machine {
     background: #222;
-    padding: 25px;
+    padding: 30px;
     border: 4px solid white;
     text-align: center;
 }
-
 .slots {
     display: flex;
     gap: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    justify-content: center;
 }
-
 .slot {
     width: 90px;
-    height: 130px;
+    height: 140px;
     border: 3px solid white;
-    font-size: 56px;
+    font-size: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: black;
+    transition: 0.3s;
 }
-
-/* ===== COLORES ===== */
-.slot[data-num="1"] { color: #aaa; }
-.slot[data-num="2"] { color: #4aa3ff; }
-.slot[data-num="3"] { color: #4aff7a; }
-.slot[data-num="4"] { color: #ffe84a; }
-.slot[data-num="5"] { color: #ff9f3a; }
-.slot[data-num="6"] { color: #ff4a4a; }
-.slot[data-num="7"] { color: #b44aff; }
-
-/* ===== UI ===== */
-.controls {
-    margin-bottom: 15px;
+.slot.cursed {
+    color: black;
+    border: 3px solid white;
 }
-
-input[type="number"] {
-    width: 120px;
-    font-size: 14px;
-    text-align: center;
-}
-
 button {
-    font-size: 14px;
-    padding: 8px 20px;
+    font-size: 20px;
+    padding: 10px 40px;
     cursor: pointer;
     background: white;
     border: none;
+    margin-top: 10px;
 }
-
 button:disabled {
     background: gray;
+    cursor: not-allowed;
 }
-
-/* ===== SENSELIOS ===== */
-.money {
+#money-container {
+    position: absolute;
+    top: 10px;
+    right: 20px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+    font-size: 18px;
 }
-
-.money img {
-    width: 32px;
+#money-container img {
+    width: 24px;
+    height: 24px;
+    margin-left: 5px;
 }
-
-/* ===== DEBUG ===== */
-.debug {
-    background: #000;
-    border: 3px dashed #b44aff;
-    padding: 15px;
+.debug-panel {
+    margin-top: 20px;
     display: none;
+    flex-direction: column;
+    gap: 10px;
 }
-
-.debug input {
-    width: 100px;
-    font-size: 12px;
+.debug-panel input, .debug-panel select {
+    font-family: monospace;
+    font-size: 16px;
+    padding: 5px;
 }
-
-/* ===== JACKPOT ===== */
-@keyframes flash {
-    0% { border-color: white; }
-    50% { border-color: #b44aff; }
-    100% { border-color: white; }
+.debug-panel button {
+    font-size: 16px;
+    padding: 5px 10px;
 }
-
-@keyframes shake {
-    0% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    50% { transform: translateX(5px); }
-    75% { transform: translateX(-5px); }
-    100% { transform: translateX(0); }
+.jackpot {
+    animation: jackpotAnim 0.5s infinite alternate;
 }
-
-@keyframes pulse {
+@keyframes jackpotAnim {
     0% { transform: scale(1); }
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
 }
-
-.jackpot {
-    animation: flash 0.3s infinite, shake 0.4s;
-}
-
-.jackpot .slot {
-    animation: pulse 0.6s infinite;
-}
 </style>
 </head>
-
 <body>
 
-<div class="container">
-
-    <!-- ===== MAQUINA ===== -->
-    <div class="slot-machine" id="machine">
-
-        <div class="money">
-            <img src="senselios.png">
-            <span id="money">0</span>
-        </div>
-
-        <div class="slots">
-            <div class="slot" id="s1">1</div>
-            <div class="slot" id="s2">1</div>
-            <div class="slot" id="s3">1</div>
-        </div>
-
-        <div class="controls">
-            <input type="number" id="bet" value="10" min="1">
-        </div>
-
-        <button id="spin">GIRAR</button>
-    </div>
-
-    <!-- ===== DEBUG ===== -->
-    <div class="debug" id="debug">
-        <h3>DEBUG</h3>
-        <input type="number" id="addMoney" placeholder="+ dinero">
-        <button onclick="addDebugMoney()">OK</button><br><br>
-        <input type="number" id="force" placeholder="Resultado (1-7)">
-    </div>
-
+<div id="money-container">
+    <span id="money-display">0</span>
+    <img src="senselios.png" alt="Senselios">
 </div>
 
-<audio id="plac" src="plac.mp3"></audio>
+<div class="slot-machine">
+    <div class="slots">
+        <div class="slot" id="slot1">1</div>
+        <div class="slot" id="slot2">1</div>
+        <div class="slot" id="slot3">1</div>
+    </div>
+    <input type="number" id="bet" value="10" min="1" style="width:80px; font-size:16px;">
+    <button id="spinBtn">GIRAR</button>
+</div>
+
+<div class="debug-panel" id="debugPanel">
+    <input type="number" id="addMoneyInput" placeholder="Añadir Senselios">
+    <button id="addMoneyBtn">Añadir Senselios</button>
+    <input type="text" id="forceResult" placeholder="Fuerza resultado (ej: 7, (3))">
+</div>
 
 <script>
-const CODE = prompt("Introduce tu código:");
-const isDebug = CODE === "GodIsHere";
-const saveKey = "slot_" + CODE;
+let money = 0;
+let userCode = '';
 
-let money = 300;
-let forced = null;
+function login() {
+    userCode = prompt("Introduce tu código de jugador:");
+    if(!userCode) login();
+    const saved = localStorage.getItem('player_'+userCode);
+    if(saved) {
+        money = parseInt(saved);
+    } else {
+        money = 300;
+        localStorage.setItem('player_'+userCode, money);
+    }
 
-if (localStorage.getItem(saveKey)) {
-    money = JSON.parse(localStorage.getItem(saveKey)).money;
+    // Modo debug
+    if(userCode === "GodIsHere") {
+        document.getElementById("debugPanel").style.display = "flex";
+    }
+
+    updateMoney();
 }
 
-const moneyEl = document.getElementById("money");
-const betEl = document.getElementById("bet");
+function updateMoney() {
+    document.getElementById("money-display").textContent = money;
+    localStorage.setItem('player_'+userCode, money);
+}
+
+// -------------------------------------------
+// Slots
 const slots = [
-    document.getElementById("s1"),
-    document.getElementById("s2"),
-    document.getElementById("s3")
+    document.getElementById("slot1"),
+    document.getElementById("slot2"),
+    document.getElementById("slot3")
 ];
-const machine = document.getElementById("machine");
-const plac = document.getElementById("plac");
+const spinBtn = document.getElementById("spinBtn");
 
-moneyEl.textContent = money;
-
-if (isDebug) document.getElementById("debug").style.display = "block";
-
-function save() {
-    localStorage.setItem(saveKey, JSON.stringify({ money }));
-}
+// Probabilidades ajustadas
+const numbers = [
+    {num:1, weight:19.4}, {num:2, weight:19.4},
+    {num:3, weight:14.9}, {num:4, weight:14.9},
+    {num:5, weight:0}, {num:6, weight:0}, {num:7, weight:8.4}
+];
+// Calculamos el peso restante para 5 y 6
+let totalUsed = 19.4*2 + 14.9*2 + 8.4;
+let remaining = 100 - totalUsed;
+numbers.find(n=>n.num===5).weight = remaining/2;
+numbers.find(n=>n.num===6).weight = remaining/2;
 
 function weightedRandom() {
-    const pool = [
-        ...Array(194).fill(1),
-        ...Array(194).fill(2),
-        ...Array(149).fill(3),
-        ...Array(149).fill(4),
-        ...Array(147).fill(5),
-        ...Array(147).fill(6),
-        ...Array(84).fill(7)
-    ];
-    return pool[Math.floor(Math.random() * pool.length)];
+    let sum = numbers.reduce((a,b)=>a+b.weight,0);
+    let rand = Math.random()*sum;
+    for(let i=0;i<numbers.length;i++){
+        rand -= numbers[i].weight;
+        if(rand<=0) return numbers[i].num;
+    }
+    return 7;
 }
 
-function spin() {
-    const bet = parseInt(betEl.value);
-    if (bet > money || bet <= 0) return;
+// Colores para números
+function numColor(n) {
+    const colors = {1:'red',2:'orange',3:'yellow',4:'green',5:'cyan',6:'blue',7:'magenta'};
+    return colors[n] || 'white';
+}
 
+// Sonido "plac"
+const plac = new Audio('plac.mp3');
+
+function spin() {
+    let bet = parseInt(document.getElementById("bet").value);
+    if(bet > money || bet <=0) { alert("Apuesta inválida"); return;}
     money -= bet;
     updateMoney();
 
+    spinBtn.disabled = true;
+    let intervals = [];
     let results = [];
+    let cursedFlags = [];
 
-    slots.forEach((slot, i) => {
-        const interval = setInterval(() => {
-            const n = weightedRandom();
-            slot.textContent = n;
-            slot.dataset.num = n;
-        }, 80);
+    for(let i=0;i<3;i++){
+        let interval = setInterval(()=>{
+            let n = weightedRandom();
+            slots[i].textContent = n;
+            slots[i].style.color = numColor(n);
+            slots[i].classList.remove("cursed");
+        },50);
+        intervals.push(interval);
+    }
 
-        setTimeout(() => {
-            clearInterval(interval);
-            const final = forced ?? weightedRandom();
-            slot.textContent = final;
-            slot.dataset.num = final;
-            results.push(final);
-            plac.currentTime = 0;
+    // Calculamos resultados
+    setTimeout(()=>{
+        for(let i=0;i<3;i++){
+            clearInterval(intervals[i]);
+            let forced = document.getElementById("forceResult").value.trim();
+            let n, cursed=false;
+            if(forced && userCode==="GodIsHere") {
+                const parts = forced.split(",");
+                if(parts[i]){
+                    let val = parts[i].trim();
+                    if(val.startsWith("(") && val.endsWith(")")){
+                        n = parseInt(val.slice(1,-1));
+                        cursed = true;
+                    } else {
+                        n = parseInt(val);
+                    }
+                } else {
+                    n = weightedRandom();
+                }
+            } else {
+                n = weightedRandom();
+            }
+            results.push(n);
+            cursedFlags.push(cursed);
+            slots[i].textContent = n;
+            slots[i].style.color = numColor(n);
+            slots[i].classList.toggle("cursed", cursed);
             plac.play();
-
-            if (results.length === 3) checkWin(bet, results);
-        }, 1000 + i * 600);
-    });
+        }
+        checkWin(bet, results, cursedFlags);
+        spinBtn.disabled = false;
+    }, 1000);
 }
 
-function checkWin(bet, r) {
-    if (r[0] === r[1] && r[1] === r[2]) {
-        money += bet * 3;
-        updateMoney();
+// -------------------------------------------
+// Win check con maldición
+function checkWin(bet, r, cursedArr) {
+    let wouldWin = (r[0]===r[1] && r[1]===r[2]);
+    let winAmount = wouldWin ? bet*3 : 0;
+    let hasCursed = cursedArr.some(c=>c);
 
-        if (r[0] === 7) {
-            machine.classList.add("jackpot");
-            setTimeout(() => machine.classList.remove("jackpot"), 3000);
+    if(hasCursed) {
+        if(wouldWin) {
+            // pierdes ganancia
+            money -= winAmount;
+        } else {
+            // pierdes apuesta extra
+            money -= bet;
+        }
+        updateMoney();
+        return;
+    }
+
+    if(wouldWin){
+        money += winAmount;
+        updateMoney();
+        if(r[0]===7){
+            slots.forEach(s=>s.classList.add("jackpot"));
+            setTimeout(()=>slots.forEach(s=>s.classList.remove("jackpot")),3000);
         }
     }
 }
 
-function updateMoney() {
-    moneyEl.textContent = money;
-    save();
-}
-
-function addDebugMoney() {
-    const v = parseInt(document.getElementById("addMoney").value);
-    if (!isNaN(v)) {
-        money += v;
-        updateMoney();
-    }
-}
-
-document.getElementById("force").addEventListener("input", e => {
-    forced = e.target.value ? parseInt(e.target.value) : null;
-});
-
-document.getElementById("spin").addEventListener("click", spin);
+spinBtn.addEventListener("click", spin);
+login();
 </script>
 
 </body>
