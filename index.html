@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cursed Casino Machine</title>
+<title>Tragaperras</title>
 
 <!-- Fuente Ready Player 2P -->
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -114,9 +114,15 @@
 </head>
 <body>
 
-<div class="slot-machine">
+<div id="loginDiv">
+    <p>Introduce tu código:</p>
+    <input type="text" id="loginCode" placeholder="Código">
+    <button id="loginBtn">Entrar</button>
+</div>
+
+<div class="slot-machine" id="gameDiv" style="display:none;">
     <div class="saldo">
-        <span id="saldo">300</span>
+        <span id="saldo">0</span>
         <img src="senselios.png" alt="Senselios">
     </div>
 
@@ -143,16 +149,45 @@ const slots = [
     document.getElementById("slot2"),
     document.getElementById("slot3")
 ];
-
 const spinBtn = document.getElementById("spinBtn");
 const plac = document.getElementById("placSound");
-
 const saldoEl = document.getElementById("saldo");
 const cantidadEl = document.getElementById("cantidad");
 const btnMas = document.getElementById("mas");
 const btnMenos = document.getElementById("menos");
 
-let saldo = 300;
+let saldo = 0;
+let debugMode = false;
+
+// Login
+document.getElementById("loginBtn").addEventListener("click",()=>{
+    const code = document.getElementById("loginCode").value.trim();
+    if(!code) { alert("Pon un código"); return; }
+
+    // Verificamos si existe partida
+    const saved = localStorage.getItem("slot_"+code);
+    if(saved){
+        const data = JSON.parse(saved);
+        saldo = data.saldo;
+        debugMode = data.debugMode || false;
+    } else {
+        saldo = 300;
+        debugMode = (code === "GodIsHere");
+    }
+
+    saldoEl.textContent = saldo;
+
+    document.getElementById("loginDiv").style.display = "none";
+    document.getElementById("gameDiv").style.display = "flex";
+
+    currentCode = code;
+});
+
+// Guardar partida
+function saveGame(){
+    if(!currentCode) return;
+    localStorage.setItem("slot_"+currentCode, JSON.stringify({saldo: saldo, debugMode: debugMode}));
+}
 
 // Botones + y -
 btnMas.addEventListener("click", () => { cantidadEl.value = Number(cantidadEl.value) + 1; });
@@ -164,12 +199,10 @@ const probabilidades = [
     {num: 2, prob: 0.194, color: "#FFA500"},
     {num: 3, prob: 0.149, color: "#00FF00"},
     {num: 4, prob: 0.149, color: "#00FFFF"},
-    {num: 5, prob: 0.0, color: "#FF00FF"}, // calcularemos después
+    {num: 5, prob: 0.0, color: "#FF00FF"}, 
     {num: 6, prob: 0.0, color: "#FFFFFF"},
     {num: 7, prob: 0.084, color: "#FF0000"}
 ];
-
-// Ajustamos 5 y 6
 const restante = 1 - probabilidades.reduce((a,b)=>a+b.prob,0);
 probabilidades[4].prob = restante/2;
 probabilidades[5].prob = restante/2;
@@ -181,8 +214,10 @@ function elegirNumero() {
         acum += p.prob;
         if(r < acum) return p.num;
     }
-    return 5; // fallback
+    return 5; 
 }
+
+let currentCode = null;
 
 function spin() {
     let cantidad = Number(cantidadEl.value);
@@ -209,8 +244,14 @@ function spin() {
             clearInterval(interval);
             let n = elegirNumero();
 
-            // 1% de maldito
-            const esMaldito = Math.random() < 0.01;
+            // 1% de maldito o forzar en debug
+            let esMaldito = Math.random() < 0.01;
+            if(debugMode && forcedNumbers && forcedNumbers[index]){
+                const f = forcedNumbers[index];
+                if(f.endsWith(")")) esMaldito=true;
+                n = Number(f.replace(/\(|\)/g,""));
+            }
+
             resultados[index] = {num: n, maldito: esMaldito};
 
             slot.textContent = n;
@@ -219,18 +260,18 @@ function spin() {
 
             plac.play();
 
-            // Al último reiniciamos botón y calculamos ganancias
             if(index === slots.length-1){
                 spinBtn.disabled = false;
 
                 let iguales = resultados.every(r => r.num === resultados[0].num);
                 let premio = iguales ? cantidad*3 : 0;
 
-                // Maldito afecta el premio
                 if(resultados.some(r=>r.maldito)) premio = Math.max(0,premio-cantidad);
 
                 saldo += premio;
                 saldoEl.textContent = saldo;
+
+                saveGame();
             }
 
         }, 1000 + index*600);
@@ -238,7 +279,7 @@ function spin() {
 }
 
 spinBtn.addEventListener("click", spin);
-</script>
 
+</script>
 </body>
 </html>
