@@ -18,24 +18,14 @@
         height: 100vh;
     }
 
-    .hud {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-    }
-
-    .hud img {
-        width: 24px;
-        height: 24px;
+    .container {
+        display: none;
+        position: relative;
     }
 
     .slot-machine {
         background: #222;
-        padding: 30px;
+        padding: 25px;
         border: 4px solid white;
         text-align: center;
     }
@@ -43,184 +33,246 @@
     .slots {
         display: flex;
         gap: 20px;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         justify-content: center;
     }
 
     .slot {
-        width: 80px;
+        width: 90px;
         height: 120px;
         border: 3px solid white;
-        font-size: 56px;
+        font-size: 64px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: black;
+    }
+
+    .top-bar {
+        position: absolute;
+        top: -50px;
+        left: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+    }
+
+    .top-bar img {
+        width: 24px;
+        height: 24px;
     }
 
     .bet {
         display: flex;
-        align-items: center;
         justify-content: center;
+        align-items: center;
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
 
     .bet button {
-        font-size: 14px;
-        padding: 6px 10px;
+        font-size: 16px;
+        padding: 4px 8px;
         background: #333;
         color: white;
-        border: 2px solid white;
+        border: 1px solid white;
         cursor: pointer;
     }
 
     .bet input {
-        width: 100px;
+        width: 80px;
         text-align: center;
+        font-family: inherit;
         font-size: 14px;
-        padding: 6px;
+        background: black;
+        color: white;
+        border: 1px solid white;
+    }
+
+    .spin-btn {
+        font-size: 18px;
+        padding: 10px 30px;
+        cursor: pointer;
+        background: white;
+        border: none;
+    }
+
+    .spin-btn:disabled {
+        background: gray;
+        cursor: not-allowed;
+    }
+
+    .login {
+        text-align: center;
+    }
+
+    .login input {
+        font-family: inherit;
+        padding: 10px;
         background: black;
         color: white;
         border: 2px solid white;
-        font-family: 'Press Start 2P', monospace;
+        margin-bottom: 15px;
     }
 
-    #spinBtn {
-        font-size: 16px;
-        padding: 12px 30px;
-        background: white;
-        border: none;
-        cursor: pointer;
+    .debug {
+        margin-left: 20px;
+        border: 3px dashed red;
+        padding: 15px;
+        font-size: 10px;
     }
 
-    #spinBtn:disabled {
-        background: gray;
-    }
-
-    .msg {
-        margin-top: 15px;
-        font-size: 12px;
+    .debug input, .debug button {
+        font-family: inherit;
+        font-size: 10px;
+        margin-top: 5px;
+        width: 100%;
     }
 </style>
 </head>
 <body>
 
-<div class="hud">
-    <img src="senselios.png">
-    <span id="money">0</span>
+<!-- LOGIN -->
+<div class="login" id="login">
+    <p>INTRODUCE CÓDIGO</p>
+    <input id="codeInput">
+    <br>
+    <button onclick="login()">ENTRAR</button>
 </div>
 
-<div class="slot-machine">
-    <div class="slots">
-        <div class="slot" id="s1">1</div>
-        <div class="slot" id="s2">1</div>
-        <div class="slot" id="s3">1</div>
+<!-- JUEGO -->
+<div class="container" id="game">
+
+    <div class="top-bar">
+        <img src="senselios.png">
+        <span id="money">0</span>
     </div>
 
-    <div class="bet">
-        <button onclick="changeBet(-10)">-</button>
-        <input type="number" id="betInput" value="10" min="1">
-        <button onclick="changeBet(10)">+</button>
+    <div class="slot-machine">
+        <div class="slots">
+            <div class="slot" id="s1">1</div>
+            <div class="slot" id="s2">1</div>
+            <div class="slot" id="s3">1</div>
+        </div>
+
+        <div class="bet">
+            <button onclick="changeBet(-10)">-</button>
+            <input id="betInput" value="10">
+            <button onclick="changeBet(10)">+</button>
+        </div>
+
+        <button class="spin-btn" id="spinBtn">GIRAR</button>
     </div>
 
-    <button id="spinBtn">GIRAR</button>
-    <div class="msg" id="msg"></div>
+    <!-- DEBUG -->
+    <div class="debug" id="debug">
+        <p>DEBUG MODE</p>
+        <input id="addMoney" placeholder="Senselios">
+        <button onclick="addSenselios()">AÑADIR</button>
+
+        <input id="forceResult" placeholder="Resultado 1-7">
+    </div>
+
 </div>
+
+<audio id="plac" src="plac.mp3"></audio>
 
 <script>
-/* ================= LOGIN / PARTIDA ================= */
+let code = "";
+let money = 0;
+let debug = false;
 
-let code = prompt("Introduce tu código:");
-if (!code) location.reload();
+const slots = [s1, s2, s3];
+const plac = document.getElementById("plac");
 
-const saveKey = "save_" + code;
+function login() {
+    code = codeInput.value.trim();
+    if (!code) return;
 
-let save = JSON.parse(localStorage.getItem(saveKey));
+    const save = JSON.parse(localStorage.getItem(code));
 
-if (!save) {
-    save = { money: 300 };
-    localStorage.setItem(saveKey, JSON.stringify(save));
+    if (save) {
+        money = save.money;
+    } else {
+        money = 300;
+    }
+
+    debug = (code === "GodIsHere");
+    document.getElementById("debug").style.display = debug ? "block" : "none";
+
+    updateMoney();
+    login.style.display = "none";
+    game.style.display = "flex";
 }
 
-let money = save.money;
-const moneyEl = document.getElementById("money");
-moneyEl.textContent = money;
+function saveGame() {
+    localStorage.setItem(code, JSON.stringify({ money }));
+}
 
-/* ================= SLOT ================= */
+function updateMoney() {
+    moneySpan.textContent = money;
+    saveGame();
+}
 
-const slots = [
-    document.getElementById("s1"),
-    document.getElementById("s2"),
-    document.getElementById("s3")
-];
+function changeBet(v) {
+    const input = betInput;
+    let val = parseInt(input.value) || 0;
+    val = Math.max(1, val + v);
+    input.value = val;
+}
 
-const plac = new Audio("plac.mp3");
-const spinBtn = document.getElementById("spinBtn");
-const betInput = document.getElementById("betInput");
-const msg = document.getElementById("msg");
-
-function randomNumber() {
+function weightedRandom() {
     const r = Math.random() * 100;
     if (r < 19.4) return 1;
     if (r < 38.8) return 2;
     if (r < 53.7) return 3;
     if (r < 68.6) return 4;
-    if (r < 80.1) return 5;
-    if (r < 91.6) return 6;
+    if (r < 80.7) return 5;
+    if (r < 92.8) return 6;
     return 7;
 }
 
-function changeBet(v) {
-    betInput.value = Math.max(1, Number(betInput.value) + v);
-}
-
 spinBtn.onclick = () => {
-    let bet = Number(betInput.value);
-    if (bet > money) {
-        msg.textContent = "No tienes suficientes Senselios";
-        return;
-    }
+    const bet = parseInt(betInput.value);
+    if (bet > money) return;
 
     money -= bet;
     updateMoney();
-
     spinBtn.disabled = true;
-    msg.textContent = "";
+
+    const forced = debug ? parseInt(forceResult.value) : null;
 
     slots.forEach((slot, i) => {
         const interval = setInterval(() => {
-            slot.textContent = randomNumber();
-        }, 80);
+            slot.textContent = Math.floor(Math.random() * 7) + 1;
+        }, 60);
 
         setTimeout(() => {
             clearInterval(interval);
-            slot.textContent = randomNumber();
+            slot.textContent = forced || weightedRandom();
             plac.currentTime = 0;
             plac.play();
 
-            if (i === 2) finishSpin(bet);
-        }, 1000 + i * 600);
+            if (i === 2) {
+                spinBtn.disabled = false;
+                checkWin(bet);
+            }
+        }, 800 + i * 600);
     });
 };
 
-function finishSpin(bet) {
-    const values = slots.map(s => s.textContent);
-
-    if (values[0] === values[1] && values[1] === values[2]) {
-        const win = bet * 3;
-        money += win;
-        msg.textContent = "¡GANAS " + win + "!";
+function checkWin(bet) {
+    if (slots[0].textContent === slots[1].textContent &&
+        slots[1].textContent === slots[2].textContent) {
+        money += bet * 3;
+        updateMoney();
     }
-
-    updateMoney();
-    spinBtn.disabled = false;
 }
 
-function updateMoney() {
-    moneyEl.textContent = money;
-    save.money = money;
-    localStorage.setItem(saveKey, JSON.stringify(save));
+function addSenselios() {
+    money += parseInt(addMoney.value) || 0;
+    updateMoney();
 }
 </script>
 
