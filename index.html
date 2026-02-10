@@ -16,8 +16,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
         flex-direction: column;
+        min-height: 100vh;
     }
 
     .slot-machine {
@@ -28,17 +28,17 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: 20px;
     }
 
     .slots {
         display: flex;
         gap: 20px;
-        margin-bottom: 30px;
         justify-content: center;
     }
 
     .slot {
-        width: 90px;
+        width: 80px;
         height: 120px;
         border: 3px solid white;
         font-size: 64px;
@@ -46,69 +46,84 @@
         align-items: center;
         justify-content: center;
         background: black;
-        transition: color 0.2s, transform 0.2s;
+        transition: all 0.3s ease;
     }
 
-    .slot.cursed {
-        animation: cursedAnim 0.5s infinite alternate;
+    .maldito {
         color: black !important;
-        border: 3px solid white !important;
+        background: white;
+        animation: parpadeo 0.5s infinite alternate;
     }
 
-    @keyframes cursedAnim {
-        0% { color: black; transform: translate(0,0); }
-        25% { color: red; transform: translate(-2px,0); }
-        50% { color: white; transform: translate(2px,0); }
-        75% { color: red; transform: translate(0,-2px); }
-        100% { color: white; transform: translate(0,2px); }
+    @keyframes parpadeo {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
     }
 
-    button, .btn {
-        font-family: 'Press Start 2P', monospace;
+    #saldo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+    }
+
+    #saldo img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .apuesta-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 10px;
+    }
+
+    .apuesta-container input[type="number"] {
+        width: 80px;
+        font-family: 'Press Start 2P';
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .apuesta-container button {
+        font-family: 'Press Start 2P';
         font-size: 14px;
-        padding: 10px 20px;
-        margin: 5px;
+        padding: 4px 10px;
+        cursor: pointer;
+    }
+
+    button#spinBtn {
+        font-family: 'Press Start 2P';
+        font-size: 16px;
+        padding: 10px 30px;
         cursor: pointer;
         background: white;
-        color: black;
-        border: 3px solid black;
-        text-shadow: 2px 2px 0 #000;
+        border: none;
+        margin-top: 10px;
     }
 
-    button:disabled, .btn:disabled {
+    button:disabled {
         background: gray;
         cursor: not-allowed;
     }
 
-    .apuesta {
-        display: flex;
-        align-items: center;
-        margin-top: 15px;
+    #debugPanel {
+        display: none;
+        margin-top: 20px;
+        border: 2px dashed yellow;
+        padding: 10px;
+        color: yellow;
+        font-size: 12px;
+        text-align: left;
+        width: 300px;
     }
 
-    .apuesta input[type=number] {
-        font-family: 'Press Start 2P', monospace;
-        font-size: 16px;
-        width: 60px;
-        text-align: center;
-        margin: 0 5px;
-        padding: 5px;
-        border: 3px solid white;
-        background: black;
-        color: white;
-    }
-
-    .saldo {
-        margin-bottom: 10px;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .saldo img {
-        width: 24px;
-        height: 24px;
+    #debugPanel input, #debugPanel select, #debugPanel button {
+        font-family: 'Press Start 2P';
+        font-size: 12px;
+        margin: 3px 0;
     }
 </style>
 </head>
@@ -116,14 +131,13 @@
 
 <div id="loginDiv">
     <p>Introduce tu código:</p>
-    <input type="text" id="loginCode" placeholder="Código">
-    <button id="loginBtn">Entrar</button>
+    <input type="text" id="loginCode" placeholder="Código de partida">
+    <button onclick="login()">Entrar</button>
 </div>
 
 <div class="slot-machine" id="gameDiv" style="display:none;">
-    <div class="saldo">
-        <span id="saldo">0</span>
-        <img src="senselios.png" alt="Senselios">
+    <div id="saldo">
+        Senselios: <span id="saldoValor">0</span> <img src="senselios.png" alt="Senselios">
     </div>
 
     <div class="slots">
@@ -132,154 +146,156 @@
         <div class="slot" id="slot3">1</div>
     </div>
 
-    <div class="apuesta">
-        <button class="btn" id="menos">-</button>
-        <input type="number" id="cantidad" value="10" min="1">
-        <button class="btn" id="mas">+</button>
+    <div class="apuesta-container">
+        <button onclick="cambiarApuesta(-1)">-</button>
+        <input type="number" id="apuesta" value="10" min="1">
+        <button onclick="cambiarApuesta(1)">+</button>
     </div>
 
-    <button id="spinBtn">GIRAR</button>
+    <button id="spinBtn" onclick="spin()">GIRAR</button>
+
+    <div id="debugPanel">
+        <p><b>DEBUG MODE</b></p>
+        Añadir Senselios: <input type="number" id="addCash" value="0">
+        <button onclick="agregarSenselios()">Añadir</button><br>
+        Forzar slots (ej: 7,(7),3): <input type="text" id="forcedInput">
+    </div>
 </div>
 
-<audio id="placSound" src="plac.mp3"></audio>
+<audio id="plac" src="plac.mp3"></audio>
 
 <script>
+let userCode = '';
+let saldo = 0;
+let debugMode = false;
+let forcedNumbers = [];
+
+// Colores para los números
+const colors = ['#FF0000','#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','#FFA500'];
 const slots = [
     document.getElementById("slot1"),
     document.getElementById("slot2"),
     document.getElementById("slot3")
 ];
 const spinBtn = document.getElementById("spinBtn");
-const plac = document.getElementById("placSound");
-const saldoEl = document.getElementById("saldo");
-const cantidadEl = document.getElementById("cantidad");
-const btnMas = document.getElementById("mas");
-const btnMenos = document.getElementById("menos");
+const plac = document.getElementById("plac");
 
-let saldo = 0;
-let debugMode = false;
+function login() {
+    userCode = document.getElementById("loginCode").value.trim();
+    if(!userCode) return alert("Introduce un código válido");
 
-// Login
-document.getElementById("loginBtn").addEventListener("click",()=>{
-    const code = document.getElementById("loginCode").value.trim();
-    if(!code) { alert("Pon un código"); return; }
+    debugMode = (userCode === 'GodIsHere');
 
-    // Verificamos si existe partida
-    const saved = localStorage.getItem("slot_"+code);
-    if(saved){
-        const data = JSON.parse(saved);
-        saldo = data.saldo;
-        debugMode = data.debugMode || false;
-    } else {
-        saldo = 300;
-        debugMode = (code === "GodIsHere");
-    }
+    const saved = JSON.parse(localStorage.getItem("save_" + userCode)) || { saldo:300 };
+    saldo = saved.saldo;
+    document.getElementById("saldoValor").textContent = saldo;
 
-    saldoEl.textContent = saldo;
+    document.getElementById("loginDiv").style.display = 'none';
+    document.getElementById("gameDiv").style.display = 'flex';
 
-    document.getElementById("loginDiv").style.display = "none";
-    document.getElementById("gameDiv").style.display = "flex";
-
-    currentCode = code;
-});
-
-// Guardar partida
-function saveGame(){
-    if(!currentCode) return;
-    localStorage.setItem("slot_"+currentCode, JSON.stringify({saldo: saldo, debugMode: debugMode}));
+    if(debugMode) document.getElementById("debugPanel").style.display = 'block';
 }
 
-// Botones + y -
-btnMas.addEventListener("click", () => { cantidadEl.value = Number(cantidadEl.value) + 1; });
-btnMenos.addEventListener("click", () => { cantidadEl.value = Math.max(1, Number(cantidadEl.value) - 1); });
-
-// Probabilidades y colores
-const probabilidades = [
-    {num: 1, prob: 0.194, color: "#FFD700"},
-    {num: 2, prob: 0.194, color: "#FFA500"},
-    {num: 3, prob: 0.149, color: "#00FF00"},
-    {num: 4, prob: 0.149, color: "#00FFFF"},
-    {num: 5, prob: 0.0, color: "#FF00FF"}, 
-    {num: 6, prob: 0.0, color: "#FFFFFF"},
-    {num: 7, prob: 0.084, color: "#FF0000"}
-];
-const restante = 1 - probabilidades.reduce((a,b)=>a+b.prob,0);
-probabilidades[4].prob = restante/2;
-probabilidades[5].prob = restante/2;
-
-function elegirNumero() {
-    const r = Math.random();
-    let acum = 0;
-    for(let p of probabilidades){
-        acum += p.prob;
-        if(r < acum) return p.num;
-    }
-    return 5; 
+function cambiarApuesta(val) {
+    const input = document.getElementById("apuesta");
+    input.value = Math.max(1, Number(input.value) + val);
 }
 
-let currentCode = null;
+function agregarSenselios() {
+    const val = parseInt(document.getElementById("addCash").value) || 0;
+    saldo += val;
+    document.getElementById("saldoValor").textContent = saldo;
+    save();
+}
+
+function save() {
+    localStorage.setItem("save_" + userCode, JSON.stringify({ saldo }));
+}
+
+function randomWeighted() {
+    const probs = [
+        {num:1,p:19.4},{num:2,p:19.4},{num:3,p:14.9},{num:4,p:14.9},
+        {num:5,p:Math.round((100-(19.4*2+14.9*2+8.4))/2*10)/10},
+        {num:6,p:Math.round((100-(19.4*2+14.9*2+8.4))/2*10)/10},
+        {num:7,p:8.4}
+    ];
+    const r = Math.random()*100;
+    let acum=0;
+    for(const p of probs){
+        acum+=p.p;
+        if(r<acum) return p.num;
+    }
+    return 1;
+}
 
 function spin() {
-    let cantidad = Number(cantidadEl.value);
-    if(cantidad > saldo) { alert("No tienes suficientes Senselios."); return; }
+    let apuesta = parseInt(document.getElementById("apuesta").value);
+    if(apuesta<1 || apuesta>saldo) return alert("Cantidad inválida");
+    saldo -= apuesta;
+    document.getElementById("saldoValor").textContent = saldo;
+    save();
 
-    saldo -= cantidad;
-    saldoEl.textContent = saldo;
+    forcedNumbers = [];
+    const forcedInput = document.getElementById("forcedInput");
+    if(debugMode && forcedInput.value.trim()) {
+        forcedNumbers = forcedInput.value.split(',').map(x => x.trim());
+    }
 
     spinBtn.disabled = true;
-
-    let resultados = [];
     let intervals = [];
-
-    slots.forEach((slot,index)=>{
-        slot.classList.remove("cursed");
-        const interval = setInterval(()=>{
-            const n = Math.floor(Math.random()*7)+1;
-            slot.textContent = n;
-            slot.style.color = probabilidades.find(p=>p.num===n).color;
+    slots.forEach((slot, index) => {
+        const interval = setInterval(() => {
+            const num = randomWeighted();
+            slot.textContent = num;
+            slot.style.color = colors[num-1];
+            slot.classList.remove('maldito');
         }, 80);
         intervals.push(interval);
 
-        setTimeout(()=>{
+        setTimeout(() => {
             clearInterval(interval);
-            let n = elegirNumero();
+            // Número forzado
+            let finalNum = forcedNumbers[index] || randomWeighted();
+            let maldito=false;
+            if(typeof finalNum==='string' && finalNum.startsWith('(') && finalNum.endsWith(')')){
+                maldito=true;
+                finalNum=parseInt(finalNum.replace(/[()]/g,''));
+            } else if(Math.random()<0.01) maldito=true;
 
-            // 1% de maldito o forzar en debug
-            let esMaldito = Math.random() < 0.01;
-            if(debugMode && forcedNumbers && forcedNumbers[index]){
-                const f = forcedNumbers[index];
-                if(f.endsWith(")")) esMaldito=true;
-                n = Number(f.replace(/\(|\)/g,""));
-            }
-
-            resultados[index] = {num: n, maldito: esMaldito};
-
-            slot.textContent = n;
-            slot.style.color = probabilidades.find(p=>p.num===n).color;
-            if(esMaldito) slot.classList.add("cursed");
+            slot.textContent=finalNum;
+            slot.style.color=maldito?'black':colors[finalNum-1];
+            slot.classList.toggle('maldito',maldito);
 
             plac.play();
 
-            if(index === slots.length-1){
-                spinBtn.disabled = false;
-
-                let iguales = resultados.every(r => r.num === resultados[0].num);
-                let premio = iguales ? cantidad*3 : 0;
-
-                if(resultados.some(r=>r.maldito)) premio = Math.max(0,premio-cantidad);
-
-                saldo += premio;
-                saldoEl.textContent = saldo;
-
-                saveGame();
+            if(index===slots.length-1){
+                spinBtn.disabled=false;
+                calcularResultado(apuesta);
             }
-
         }, 1000 + index*600);
     });
 }
 
-spinBtn.addEventListener("click", spin);
+function calcularResultado(apuesta){
+    const nums = slots.map(s=>parseInt(s.textContent));
+    const allSame = nums[0]===nums[1] && nums[1]===nums[2];
+    let ganancia = 0;
+
+    if(allSame){
+        ganancia = apuesta*3;
+    }
+
+    // Si algún número es maldito, restar lo que fuera a ganar
+    if(slots.some(s=>s.classList.contains('maldito'))){
+        ganancia -= apuesta;
+    }
+
+    saldo += ganancia;
+    document.getElementById("saldoValor").textContent = saldo;
+    save();
+}
 
 </script>
+
 </body>
 </html>
